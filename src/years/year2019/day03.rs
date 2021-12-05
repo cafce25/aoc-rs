@@ -3,15 +3,16 @@ pub struct DayGen;
 impl crate::DayGen for DayGen {
     fn input(&self, input: &str) -> Box<dyn crate::Day> {
         let (wire_a, wire_b) = input.split_once('\n').unwrap();
+        dbg!(wire_a, wire_b);
         Box::new(Day::new((
             wire_a
                 .split(',')
-                .filter_map(|line| line.trim().parse().ok())
+                .filter_map(|dir| dir.trim().parse().ok())
                 .collect::<Vec<Direction>>()
                 .into(),
             wire_b
                 .split(',')
-                .filter_map(|line| line.trim().parse().ok())
+                .filter_map(|dir| dir.trim().parse().ok())
                 .collect::<Vec<Direction>>()
                 .into(),
         )))
@@ -51,13 +52,16 @@ impl Day {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct Point {
     x: i64,
     y: i64,
 }
 
 impl Point {
+    fn new() -> Self {
+        Self { x: 0, y: 0 }
+    }
     fn manhattan(&self) -> i64 {
         self.x.abs() + self.y.abs()
     }
@@ -71,24 +75,21 @@ struct Line {
 
 impl Line {
     fn intersect(&self, other: &Self) -> Option<Point> {
-        let x_between = self.a.x > other.a.x && self.a.x < other.b.x
-            || self.a.x < other.a.x && self.a.x > other.b.x;
-        let y_between = self.a.y > other.a.y && self.b.y < other.b.y
-            || self.a.y < other.a.y && self.a.y > other.b.y;
-        if x_between && y_between {
-            if self.vertical() && other.horizontal() {
-                return Some(Point {
-                    x: self.a.x,
-                    y: other.a.y,
-                });
-            } else if self.horizontal() && other.vertical() {
-                return Some(Point {
-                    x: other.a.x,
-                    y: self.a.y,
-                });
-            }
+        if self.vertical() && other.horizontal() {
+            let point = Point {
+                x: self.a.x,
+                y: other.a.y,
+            };
+            (self.contains(point) && other.contains(point)).then(|| point)
+        } else if self.horizontal() && other.vertical() {
+            let point = Point {
+                x: other.a.x,
+                y: self.a.y,
+            };
+            (self.contains(point) && other.contains(point)).then(|| point)
+        } else {
+            None
         }
-        None
     }
 
     fn vertical(&self) -> bool {
@@ -99,7 +100,7 @@ impl Line {
         self.a.y == self.b.y
     }
 
-    fn len(&self) -> i64 {
+    fn distance(&self) -> i64 {
         if self.vertical() {
             (self.a.y - self.b.y).abs()
         } else {
@@ -107,20 +108,23 @@ impl Line {
         }
     }
     fn distance_to(&self, p: Point) -> Option<i64> {
+        self.contains(p).then(|| {
+            Line {
+                a: self.a,
+                b: p,
+            }.distance()
+        })
+    }
+    fn contains(&self, p: Point) -> bool {
         if self.vertical() {
-            if self.a.y > p.y && p.y > self.b.y {
-                return Some(self.a.y - p.y);
-            } else if self.a.y < p.y && p.y < self.b.y {
-                return Some(p.y - self.a.y);
-            }
+            p.x == self.a.x
+                && ((self.a.y..=self.b.y).contains(&p.y) || (self.b.y..=self.a.y).contains(&p.y))
         } else if self.horizontal() {
-            if self.a.x > p.x && p.x > self.b.x {
-                return Some(self.a.x - p.x);
-            } else if self.a.x < p.x && p.x < self.b.x {
-                return Some(p.x - self.a.x);
-            }
+            p.y == self.a.y
+                && ((self.a.x..=self.b.x).contains(&p.x) || (self.b.x..=self.a.x).contains(&p.x))
+        } else {
+            false
         }
-        None
     }
 }
 
@@ -150,7 +154,7 @@ impl Wire {
             if let Some(d) = line.distance_to(point) {
                 return dist + d;
             } else {
-                dist += line.len()
+                dist += line.distance()
             }
         }
         unreachable!()
@@ -159,7 +163,7 @@ impl Wire {
 
 impl From<Vec<Direction>> for Wire {
     fn from(v: Vec<Direction>) -> Self {
-        let mut pos = Point { x: 0, y: 0 };
+        let mut pos = Point::new();
         let mut wire: Vec<_> = v
             .iter()
             .map(|dir| {
@@ -187,10 +191,9 @@ impl From<Vec<Point>> for Wire {
 
 impl crate::Day for Day {
     fn part1(&self) -> String {
-        self.input
-            .0
-            .crossings(&self.input.1)
+        Wire::crossings(&self.input.0, &self.input.1)
             .iter()
+            .filter(|p| p != &&Point::new())
             .map(Point::manhattan)
             .min()
             .unwrap()
@@ -198,6 +201,12 @@ impl crate::Day for Day {
     }
 
     fn part2(&self) -> String {
-        todo!()
+        Wire::crossings(&self.input.0, &self.input.1)
+            .iter()
+            .filter(|p| p != &&Point::new())
+            .map(|p| self.input.0.distance(*p) + self.input.1.distance(*p))
+            .min()
+            .unwrap()
+            .to_string()
     }
 }
