@@ -48,7 +48,7 @@ impl FromStr for Part {
 fn main() {
     let opt = Opt::from_args();
     let aoc_time = Utc::now().with_timezone(&Eastern);
-    let year = (match opt.year {
+    let year = match opt.year {
         Some(y) => {
             if y < 2000 {
                 y + 2000
@@ -57,15 +57,15 @@ fn main() {
             }
         }
         None => aoc_time.year(),
-    } - aoc::MIN_YEAR) as usize;
+    };
     if !opt.all {
         // run a single challenge
         // EST/UTC-5
-        let day = (match opt.day {
+        let day = match opt.day {
             Some(d) => d,
             None => aoc_time.day(),
-        } - 1) as usize;
-        let (day_gen, day_input, day_sample) = &aoc::YEARS[year][day];
+        };
+        let (day_gen, day_input, day_sample) = &aoc::YEARS[&year][&day];
         run_day(
             day_gen.as_ref(),
             day_input,
@@ -75,12 +75,12 @@ fn main() {
             opt.part,
         )
     } else {
-        for (day, (day_gen, day_input, day_sample)) in aoc::YEARS[year].iter().enumerate() {
+        for (day, (day_gen, day_input, day_sample)) in aoc::YEARS[&year].iter() {
             run_day(
                 day_gen.as_ref(),
                 day_input,
                 day_sample,
-                day,
+                *day,
                 opt.sample,
                 opt.part,
             )
@@ -92,12 +92,12 @@ fn run_day(
     day: &(dyn aoc::DayGen + Sync),
     input_str: &str,
     sample_str: &str,
-    day_num: usize,
+    day_num: u32,
     sample: bool,
     part: Part,
 ) {
     let day = day.input(if sample { sample_str } else { input_str });
-    println!("The solution for day {} is:", 1 + day_num,);
+    println!("The solution for day {} is:", day_num,);
     if part.p1() {
         println!("part 1: {}", day.part1(),);
     }
