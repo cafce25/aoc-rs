@@ -97,7 +97,7 @@ fn run_day(
     part: Part,
 ) {
     let day = day.input(if sample { sample_str } else { input_str });
-    println!("The solution for day {} is:", day_num,);
+    println!("The solution for day {} is:", 1 + day_num,);
     if part.p1() {
         println!("part 1: {}", day.part1(),);
     }
