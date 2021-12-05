@@ -1,3 +1,4 @@
+use super::intcode::Machine;
 pub struct DayGen;
 
 impl crate::DayGen for DayGen {
@@ -24,24 +25,23 @@ impl Day {
 
 impl crate::Day for Day {
     fn part1(&self) -> String {
-        let mut input = self.input.clone();
-        let mut i = 0;
-        input[1] = 12;
-        input[2] = 2;
-        loop {
-            let (in1, in2, out) = (input[i+1], input[i+2], input[i+3]);
-            match input[i] {
-                1 => input[out as usize] = input[in1 as usize] + input[in2 as usize],
-                2 => input[out as usize] = input[in1 as usize] * input[in2 as usize],
-                99 => break,
-                _ => unreachable!(),
-            }
-            i += 4;
-        }
-        format!("{}", input[0])
+        let mut machine = Machine::from(&self.input);
+        machine.input(12, 2);
+        machine.run();
+        format!("{}", machine.output())
     }
 
     fn part2(&self) -> String {
-        todo!()
+        for noun in 0..=99 {
+            for verb in 0..=99 {
+                let mut machine = Machine::from(&self.input);
+                machine.input(noun, verb);
+                machine.run();
+                if machine.output() == 19690720 {
+                    return format!("{}", 100 * noun + verb);
+                }
+            }
+        }
+        unreachable!();
     }
 }
