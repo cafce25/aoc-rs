@@ -63,37 +63,20 @@ impl Day {
 impl crate::Day for Day {
     fn part1(&self) -> String {
         let mut field: HashMap<(i64, i64), i64> = HashMap::new();
-        self.input.iter().for_each(|l| {
-            if l.is_vertical() {
-                for y in if l.a.1 > l.b.1 {
-                    l.b.1..=l.a.1
-                } else {
-                    l.a.1..=l.b.1
-                } {
-                    let key = (l.a.0, y);
-                    if !field.contains_key(&key) {
-                        field.insert(key, 0);
-                    }
-                    if let Some(v) = field.get_mut(&key) {
-                        *v += 1;
-                    }
+        self.input
+            .iter()
+            .filter(|l| l.is_vertical() || l.is_horizontal())
+            .for_each(|l| {
+                let dx = (l.b.0 - l.a.0).signum();
+                let dy = (l.b.1 - l.a.1).signum();
+                let d = (l.b.0 - l.a.0).abs().max((l.b.1 - l.a.1).abs());
+                for i in 0..=d {
+                    let x = l.a.0 + dx * i;
+                    let y = l.a.1 + dy * i;
+                    let key = (x, y);
+                    field.entry(key).and_modify(|v| *v += 1).or_insert(1);
                 }
-            } else if l.is_horizontal() {
-                for x in if l.a.0 > l.b.0 {
-                    l.b.0..=l.a.0
-                } else {
-                    l.a.0..=l.b.0
-                } {
-                    let key = (x, l.a.1);
-                    if !field.contains_key(&key) {
-                        field.insert(key, 0);
-                    }
-                    if let Some(v) = field.get_mut(&key) {
-                        *v += 1;
-                    }
-                }
-            }
-        });
+            });
 
         field.into_values().filter(|v| *v > 1).count().to_string()
     }
@@ -101,7 +84,6 @@ impl crate::Day for Day {
     fn part2(&self) -> String {
         let mut field: HashMap<(i64, i64), i64> = HashMap::new();
         self.input.iter().for_each(|l| {
-            // dbg!(l.b, l.a);
             let dx = (l.b.0 - l.a.0).signum();
             let dy = (l.b.1 - l.a.1).signum();
             let d = (l.b.0 - l.a.0).abs().max((l.b.1 - l.a.1).abs());
@@ -109,12 +91,7 @@ impl crate::Day for Day {
                 let x = l.a.0 + dx * i;
                 let y = l.a.1 + dy * i;
                 let key = (x, y);
-                if !field.contains_key(&key) {
-                    field.insert(key, 0);
-                }
-                if let Some(v) = field.get_mut(&key) {
-                    *v += 1;
-                }
+                field.entry(key).and_modify(|v| *v += 1).or_insert(1);
             }
         });
 
