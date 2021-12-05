@@ -78,8 +78,7 @@ impl Day {
         Self { input }
     }
 
-    fn calc_o2_co2(&self, co2: bool) -> u64
-    {
+    fn calc_o2_co2(&self, co2: bool) -> u64 {
         let n = self.input[0].len();
         let arr = (0..n).fold(self.input.to_owned(), |input, i| {
             if input.len() <= 1 {
@@ -95,7 +94,7 @@ impl Day {
             input
                 .into_iter()
                 .filter(|line| {
-                    if (ones >= zeros) != co2  {
+                    if (ones >= zeros) != co2 {
                         line.get(i)
                     } else {
                         !line.get(i)

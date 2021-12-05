@@ -96,28 +96,30 @@ impl crate::Day for Day {
 
     fn part2(&self) -> String {
         let (numbers, boards) = (&self.input.0, self.input.1.clone());
-        let (boards, num) = numbers.iter().fold((boards, 0), |(mut boards, winner), num| {
-            if boards.len() == 1 {
-                if boards[0].win().is_none() {
-                    boards[0].mark(*num);
-                    (boards, *num)
+        let (boards, num) = numbers
+            .iter()
+            .fold((boards, 0), |(mut boards, winner), num| {
+                if boards.len() == 1 {
+                    if boards[0].win().is_none() {
+                        boards[0].mark(*num);
+                        (boards, *num)
+                    } else {
+                        (boards, winner)
+                    }
                 } else {
-                    (boards, winner)
+                    (
+                        boards
+                            .into_iter()
+                            .map(|mut b| {
+                                b.mark(*num);
+                                b
+                            })
+                            .filter(|b| b.win().is_none())
+                            .collect(),
+                        winner,
+                    )
                 }
-            } else {
-                (
-                    boards
-                        .into_iter()
-                        .map(|mut b| {
-                            b.mark(*num);
-                            b
-                        })
-                        .filter(|b| !b.win().is_some())
-                        .collect(),
-                    winner,
-                )
-            }
-        });
+            });
         if let Some(val) = boards[0].win() {
             format!("Last winner has {} points", val * num)
         } else {
