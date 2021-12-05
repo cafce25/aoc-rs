@@ -3,4 +3,4 @@ cookie
 input*.txt
 sample*.txt
 src/years/mod.rs
-src/years/year*/mod.rs
+src/years/year*/day_mods.rs
