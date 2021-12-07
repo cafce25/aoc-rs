@@ -20,6 +20,11 @@ fn main() {
     for year in FIRST_YEAR..=now.year() {
         let _ = writeln!(years_mod_file, "pub mod year{:04};", year);
     }
+    let years_entries = (FIRST_YEAR..=now.year())
+        .filter_map(|year| generate_year(year, now, &client, "        ".to_string()))
+        .collect::<Vec<_>>()
+        .join("\n");
+
     let _ = writeln!(
         years_mod_file,
         concat!(
@@ -28,28 +33,16 @@ fn main() {
             "lazy_static::lazy_static! {{\n",
             "    pub static ref YEARS: BTreeMap<i32, BTreeMap<u32, DayInfo>> = {{\n",
             "        let mut map = BTreeMap::new();\n",
+            "{entries}\n",
+            "        map\n",
+            "    }};\n",
+            "}}"
         ),
+        entries = years_entries
     );
-    for year in FIRST_YEAR..=now.year() {
-        if let Some(year_entries) = generate_year(
-            year,
-            now,
-            &client,
-            "        ".to_string(),
-        ) {
-            let _ = writeln!(years_mod_file, "{entries}", entries = year_entries);
-        }
-    }
-
-    let _ = writeln!(years_mod_file, "        map\n    }};\n}}");
 }
 
-fn generate_year(
-    year: i32,
-    now: impl Datelike,
-    client: &Client,
-    indent: String,
-) -> Option<String> {
+fn generate_year(year: i32, now: impl Datelike, client: &Client, indent: String) -> Option<String> {
     let year_directory_name = format!("src/years/year{}", year);
     let year_path = Path::new(&year_directory_name);
     fs::create_dir_all(year_path).unwrap();
@@ -59,43 +52,45 @@ fn generate_year(
         let _ = writeln!(year_mod_file, "include!(\"./day_mods.rs\");");
     }
 
-    (now.year() > year || now.year() == year && now.month() == 12).then(|| {
-        let max_day = if now.year() > year || now.day() > 24 {
-            24
-        } else {
-            now.day()
-        };
+    (now.year() > year || now.year() == year && now.month() == 12)
+        .then(|| {
+            let max_day = if now.year() > year || now.day() > 24 {
+                24
+            } else {
+                now.day()
+            };
 
-        let (mods, entries): (Vec<_>, Vec<_>) = (1..=max_day)
-            .filter_map(|day| {
-                generate_day(
-                    day,
-                    year,
-                    year_path,
-                    &year_directory_name,
-                    client,
-                    format!("{}    ", indent),
+            let (mods, entries): (Vec<_>, Vec<_>) = (1..=max_day)
+                .filter_map(|day| {
+                    generate_day(
+                        day,
+                        year,
+                        year_path,
+                        &year_directory_name,
+                        client,
+                        format!("{}    ", indent),
+                    )
+                })
+                .unzip();
+            let year_day_mods_path = year_path.join("day_mods.rs");
+            let mut year_day_mods_file = File::create(year_day_mods_path).unwrap();
+            let _ = writeln!(year_day_mods_file, "{mods}", mods = mods.join("\n"));
+            (!entries.is_empty()).then(|| {
+                format!(
+                    concat!(
+                        "{indent}map.insert({year}, {{\n",
+                        "{indent}    let mut map = BTreeMap::<u32, DayInfo>::new();\n",
+                        "{entries}\n",
+                        "{indent}    map\n",
+                        "{indent}}});",
+                    ),
+                    year = year,
+                    entries = entries.join("\n"),
+                    indent = indent,
                 )
             })
-            .unzip();
-        let year_day_mods_path = year_path.join("day_mods.rs");
-        let mut year_day_mods_file = File::create(year_day_mods_path).unwrap();
-        let _ = writeln!(year_day_mods_file, "{mods}", mods = mods.join("\n"));
-        (!entries.is_empty()).then(|| {
-            format!(
-                concat!(
-                    "{indent}map.insert({year}, {{\n",
-                    "{indent}    let mut map = BTreeMap::<u32, DayInfo>::new();\n",
-                    "{entries}\n",
-                    "{indent}    map\n",
-                    "{indent}}});",
-                ),
-                year = year,
-                entries = entries.join("\n"),
-                indent = indent,
-            )
         })
-    }).flatten()
+        .flatten()
 }
 
 fn generate_day<S: AsRef<str>>(
@@ -115,10 +110,11 @@ fn generate_day<S: AsRef<str>>(
             .parse::<Url>()
             .unwrap();
 
+        println!("downolading input for {}/{}...", day, year);
         let _ = writeln!(
             input_file,
             "{}",
-            client.get(url).send().unwrap().text().unwrap()
+            client.get(url).send().unwrap().text().unwrap().trim()
         );
     }
 
