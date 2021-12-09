@@ -27,8 +27,8 @@ impl crate::Day for Day {
     fn part1(&self) -> String {
         let mut sorted = self.input.clone();
         sorted.sort_unstable();
-        let median = dbg!(sorted[sorted.len() / 2]);
-        let fuel: i64 = self.input.iter().map(|p| dbg!(p - median).abs()).sum();
+        let median = sorted[sorted.len() / 2];
+        let fuel: i64 = self.input.iter().map(|p| (p - median).abs()).sum();
         fuel.to_string()
     }
 
