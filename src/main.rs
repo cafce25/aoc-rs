@@ -75,12 +75,12 @@ fn main() {
             opt.part,
         )
     } else {
-        for (i, (day_gen, day_input, day_sample)) in aoc::YEARS[year].iter().enumerate() {
+        for (day, (day_gen, day_input, day_sample)) in aoc::YEARS[year].iter().enumerate() {
             run_day(
                 day_gen.as_ref(),
                 day_input,
                 day_sample,
-                i + 1,
+                day,
                 opt.sample,
                 opt.part,
             )
