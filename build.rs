@@ -28,7 +28,7 @@ fn main() {
     for year in FIRST_YEAR..=now.year() {
         writeln!(years_mod_file, "pub mod year{:04};", year).unwrap();
     }
-    write!(
+    let _ = writeln!(
         years_mod_file,
         concat!(
             "\n",
@@ -39,14 +39,20 @@ fn main() {
             "    );\n",
             "\n",
             "lazy_static::lazy_static! {{\n",
-            "    pub static ref YEARS: Vec<Vec<DayInfo>> = vec![\n",
+            "    pub static ref YEARS: Vec<Vec<DayInfo>> = vec![",
         ),
-    ).unwrap();
+    );
     for year in FIRST_YEAR..=now.year() {
         let year_directory_name = format!("src/years/year{}", year);
         let year_path = Path::new(&year_directory_name);
         fs::create_dir_all(year_path).unwrap();
-        let mut year_days_mod_file = File::create(year_path.join("mod.rs")).unwrap();
+        let year_days_mod_path = year_path.join("mod.rs");
+        let year_days_mod_file = if year_days_mod_path.is_file() {
+            None
+        } else {
+            File::create(year_days_mod_path).ok()
+        };
+
         if now.year() > year || now.year() == year && now.month() == 12 {
             let max_day = if now.year() > year || now.day() > 24 {
                 24
@@ -54,27 +60,12 @@ fn main() {
                 now.day()
             };
 
-            (1..=max_day).for_each(|day| {
-                writeln!(year_days_mod_file, "pub mod day{:02};", day).unwrap();
-            });
-            // write!(
-            //     year_days_mod_file,
-            //     concat!(
-            //         "\n",
-            //         "lazy_static::lazy_static! {{\n",
-            //         "    pub static ref DAYS: Vec<(\n",
-            //         "        Box<dyn crate::DayGen + Sync>,\n",
-            //         "        &'static str,\n",
-            //         "        &'static str,\n",
-            //         "    )> = vec![\n",
-            //     )
-            // )
-            // .unwrap();
-            writeln!(
-                years_mod_file,
-                "        vec![",
-            )
-            .unwrap();
+            if let Some(mut year_days_mod_file) = year_days_mod_file {
+                (1..=max_day).for_each(|day| {
+                    let _ = writeln!(year_days_mod_file, "pub mod day{:02};", day);
+                });
+            }
+            let _ = writeln!(years_mod_file, "        vec![",);
             for day in 1..=max_day {
                 let input_file_name = format!("input{:02}.txt", day);
                 let input_path = year_path.join(&input_file_name);
@@ -89,44 +80,21 @@ fn main() {
                         .parse::<Url>()
                         .unwrap();
 
-                    writeln!(
+                    let _ = writeln!(
                         input_file,
                         "{}",
                         client.get(url).send().unwrap().text().unwrap()
-                    )
-                    .unwrap();
+                    );
                 }
 
-                // write!(
-                //     year_days_mod_file,
-                //     concat!(
-                //         "        (\n",
-                //         "            Box::new(day{0:02}::DayGen),\n",
-                //         "            {1},\n",
-                //         "            {2},\n",
-                //         "        ),\n",
-                //     ),
-                //     day,
-                //     if input_path.is_file() {
-                //         format!("include_str!(\"./{}\")", input_file_name)
-                //     } else {
-                //         format!("\"no input for {day}\"", day = day)
-                //     },
-                //     if sample_path.is_file() {
-                //         format!("include_str!(\"./{}\")", sample_file_name)
-                //     } else {
-                //         format!("\"no example for {day}\"", day = day)
-                //     }
-                // )
-                // .unwrap();
-                write!(
+                let _ = writeln!(
                     years_mod_file,
                     concat!(
                         "            (\n",
                         "                Box::new(year{:04}::day{:02}::DayGen),\n",
                         "                {},\n",
                         "                {},\n",
-                        "            ),\n",
+                        "            ),",
                     ),
                     year,
                     day,
@@ -140,11 +108,12 @@ fn main() {
                     } else {
                         format!("\"no example for {day}\"", day = day)
                     },
-                )
-                .unwrap();
+                );
                 if !source_path.is_file() {
                     let mut source_file = File::create(source_path).unwrap();
-                    write!(source_file, r#"#![allow(dead_code)]
+                    let _ = write!(
+                        source_file,
+                        r#"#![allow(dead_code)]
 pub struct DayGen;
 
 impl crate::DayGen for DayGen {{
@@ -174,12 +143,12 @@ impl crate::Day for Day {{
     fn part2(&self) -> String {{
         todo!()
     }}
-}}"#).unwrap();
+}}"#
+                    );
                 }
             }
-            writeln!(years_mod_file, "        ],").unwrap();
-            // write!(year_days_mod_file, concat!("    ];\n}}\n",)).unwrap();
+            let _ = writeln!(years_mod_file, "        ],");
         }
     }
-    writeln!(years_mod_file, "    ];\n}}").unwrap();
+    let _ = writeln!(years_mod_file, "    ];\n}}");
 }
