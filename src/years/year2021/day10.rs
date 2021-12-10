@@ -40,6 +40,7 @@ fn corrupt(line: &Vec<char>) -> Result<char, Vec<char>> {
     }
     Err(parens)
 }
+
 impl crate::Day for Day {
     fn part1(&self) -> String {
         self.input.iter().map(corrupt).filter_map(Result::ok).map(|c| match c {
@@ -53,6 +54,44 @@ impl crate::Day for Day {
     }
 
     fn part2(&self) -> String {
-        todo!()
+        let mut points: Vec<_> = self.input.iter().filter_map(|c| if let Err(c) = corrupt(c) {
+            Some(c)
+        } else {
+            None
+        }).map(|c| c.into_iter().rev().fold(0u64, |acc, p| 5*acc + match p {
+            '(' => 1,
+            '[' => 2,
+            '{' => 3,
+            '<' => 4,
+            _ => unreachable!(),
+        })).collect();
+        points.sort();
+        points[(points.len()-1)/2].to_string()
+    }
+}
+
+
+mod tests {
+    #![allow(unused_imports)]
+    use crate::Day as _;
+    use super::*;
+    #[test]
+    fn sample_part2_test() {
+        let input = concat!(
+            "[({(<(())[]>[[{[]{<()<>>\n",
+            "[(()[<>])]({[<{<<[]>>(\n",
+            "{([(<{}[<>[]}>{[]{[(<()>\n",
+            "(((({<>}<{<{<>}{[]{[]{}\n",
+            "[[<[([]))<([[{}[[()]]]\n",
+            "[{[{({}]{}}([{[{{{}}([]\n",
+            "{<[[]]>}<{[{[{[]{()[[[]\n",
+            "[<(<(<(<{}))><([]([]()\n",
+            "<{([([[(<>()){}]>(<<{{\n",
+            "<{([{{}}[<[[[<>{}]]]>[]]",
+        );
+        let day = Day::from_str(input);
+        assert_eq!(day.input.len(), 10);
+        assert_eq!(day.input[0].len(), 24);
+        assert_eq!(day.part2(), 288957u64.to_string());
     }
 }
