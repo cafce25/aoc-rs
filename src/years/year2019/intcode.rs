@@ -1,28 +1,10 @@
 use std::{
     collections::VecDeque,
-    fmt::{Debug, Formatter, Result},
+    fmt::Debug,
     ops::{Index, IndexMut},
 };
-use itertools::Itertools as _;
 
 type Atom = i64;
-pub struct Machine {
-    pub memory: Memory,
-    ip: usize,
-    pub halt: bool,
-    input: VecDeque<Atom>,
-    output: Vec<Atom>,
-}
-impl Debug for Machine {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        f.debug_struct("Machine")
-            .field("memory", &self.memory.0.iter().map(i64::to_string).join(", "))
-            .field("ip", &self.ip)
-            .field("halt", &self.halt)
-            .field("output", &self.output)
-            .finish_non_exhaustive()
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct Memory(Vec<Atom>);
@@ -63,6 +45,17 @@ enum Parameter {
     Position(usize),
 }
 
+impl Parameter {
+    fn new(param_mode: u8, ip: Atom) -> Parameter {
+        match param_mode {
+            0 if ip >= 0 => Self::Position(ip as usize),
+            0 => panic!("ip smaller than 0"),
+            1 => Self::Immediate(ip),
+            _ => unimplemented!(),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 enum OpCode {
     Add(Parameter, Parameter, Parameter),
@@ -86,6 +79,16 @@ impl OpCode {
         }
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct Machine {
+    pub memory: Memory,
+    ip: usize,
+    pub halt: bool,
+    input: VecDeque<Atom>,
+    output: Vec<Atom>,
+}
+
 impl Machine {
     pub fn step(&mut self) {
         let op_code = self.op_code(self.ip);
@@ -203,16 +206,5 @@ impl From<Vec<Atom>> for Machine {
 impl From<&Vec<Atom>> for Machine {
     fn from(memory: &Vec<Atom>) -> Self {
         Self::from(memory.to_owned())
-    }
-}
-
-impl Parameter {
-    fn new(param_mode: u8, ip: Atom) -> Parameter {
-        match param_mode {
-            0 if ip >= 0 => Self::Position(ip as usize),
-            0 => panic!("ip smaller than 0"),
-            1 => Self::Immediate(ip),
-            _ => unimplemented!(),
-        }
     }
 }
