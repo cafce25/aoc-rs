@@ -1,6 +1,7 @@
 use std::{
     collections::VecDeque,
     fmt::Debug,
+    iter::IntoIterator,
     ops::{Index, IndexMut},
 };
 
@@ -22,6 +23,10 @@ impl Memory {
             Parameter::Position(p) => &mut self.0[p],
             _ => unimplemented!(),
         }
+    }
+
+    fn len(&self) -> usize {
+        self.0.len()
     }
 }
 
@@ -86,9 +91,19 @@ pub struct Machine {
     ip: usize,
     pub halt: bool,
     input: VecDeque<Atom>,
-    output: Vec<Atom>,
+    output: VecDeque<Atom>,
 }
 
+impl Iterator for Machine {
+    type Item = Atom;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while !self.halt && self.output.is_empty() {
+            self.step();
+        }
+        self.output.pop_front()
+    }
+}
 impl Machine {
     pub fn step(&mut self) {
         let op_code = self.op_code(self.ip);
@@ -109,7 +124,7 @@ impl Machine {
                     *self.memory.get_mut(out) = val
                 }
             }
-            Output(input) => self.output.push(self.memory.get(input)),
+            Output(input) => self.output.push_back(self.memory.get(input)),
             JumpIfTrue(b, t) => {
                 if self.memory.get(b) != 0 {
                     self.ip = self.memory.get(t) as usize;
@@ -141,15 +156,21 @@ impl Machine {
             self.step();
         }
     }
-    pub fn input(&mut self, input: Vec<Atom>) {
-        self.input.reserve(input.len());
-        input.into_iter().for_each(|v| self.input.push_back(v));
+    pub fn input(&mut self, input: Atom) {
+        self.input.push_back(input)
     }
-    pub fn output(&self) -> &[Atom] {
-        &self.output[..]
+    pub fn input_iter<I>(&mut self, input: I)
+    where
+        I: IntoIterator<Item = Atom>,
+    {
+        let it = input.into_iter();
+        let (lower, _) = it.size_hint();
+        self.input.reserve(lower);
+        it.for_each(|v| self.input.push_back(v));
     }
 
     fn op_code(&self, ip: usize) -> OpCode {
+        if ip >= self.memory.len() { return OpCode::Halt; }
         let op_code = self.memory[ip] % 100;
         let param_mode1 = (self.memory[ip] / 100 % 10) as u8;
         let param_mode2 = (self.memory[ip] / 1000 % 10) as u8;
@@ -198,7 +219,7 @@ impl From<Vec<Atom>> for Machine {
             ip: 0,
             halt: false,
             input: VecDeque::new(),
-            output: Vec::new(),
+            output: VecDeque::new(),
         }
     }
 }

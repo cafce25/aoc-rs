@@ -24,9 +24,9 @@ impl Day {
     }
     pub fn run(&self, input: i64) -> i64 {
         let mut machine = Machine::from(&self.input);
-        machine.input(vec![input]);
+        machine.input(input);
         machine.run();
-        *machine.output().iter().last().unwrap()
+        machine.last().unwrap()
     }
 }
 
