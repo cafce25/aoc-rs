@@ -7,7 +7,7 @@ impl crate::DayGen for DayGen {
         let boards = boards
             .split("\n\n")
             .filter(|s| !s.is_empty())
-            .map(|board_str| Board::new(board_str))
+            .map(Board::new)
             .collect();
         Box::new(Day::new((numbers, boards)))
     }

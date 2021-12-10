@@ -20,7 +20,7 @@ impl<'a> Day<'a> {
             .trim()
             .lines()
             .filter_map(|s| {
-                s.split_once(")")
+                s.split_once(')')
                     .map(|(center, satelite)| (satelite, center))
             })
             .collect();

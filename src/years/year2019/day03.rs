@@ -3,7 +3,6 @@ pub struct DayGen;
 impl crate::DayGen for DayGen {
     fn input(&self, input: &str) -> Box<dyn crate::Day> {
         let (wire_a, wire_b) = input.split_once('\n').unwrap();
-        dbg!(wire_a, wire_b);
         Box::new(Day::new((
             wire_a
                 .split(',')

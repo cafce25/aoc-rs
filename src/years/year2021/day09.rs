@@ -44,7 +44,7 @@ impl crate::Day for Day {
                     Some(&v),
                 ]
                 .into_iter()
-                .filter_map(std::convert::identity)
+                .flatten()
                 .min();
 
                 (Some(&v) == min).then(|| v)

@@ -23,7 +23,7 @@ impl Day {
     }
 }
 
-fn corrupt(line: &Vec<char>) -> Result<char, Vec<char>> {
+fn corrupt(line: &[char]) -> Result<char, Vec<char>> {
     let mut parens = Vec::new();
     for par in line {
         if ['(', '[', '{', '<'].contains(par) {
@@ -43,7 +43,7 @@ fn corrupt(line: &Vec<char>) -> Result<char, Vec<char>> {
 
 impl crate::Day for Day {
     fn part1(&self) -> String {
-        self.input.iter().map(corrupt).filter_map(Result::ok).map(|c| match c {
+        self.input.iter().map(|c| corrupt(c)).filter_map(Result::ok).map(|c| match c {
             // <{[(
             ')' => 3,
             ']' => 57,
@@ -65,7 +65,7 @@ impl crate::Day for Day {
             '<' => 4,
             _ => unreachable!(),
         })).collect();
-        points.sort();
+        points.sort_unstable();
         points[(points.len()-1)/2].to_string()
     }
 }

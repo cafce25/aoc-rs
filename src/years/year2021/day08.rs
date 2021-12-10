@@ -36,30 +36,30 @@ impl Digits {
     }
 
     fn value(&self) -> u64 {
-        let mut input: HashSet<_> = self.input.iter().collect();
+        let mut input: HashSet<_> = self.input.clone().into_iter().collect();
         let mut map = HashMap::new();
 
         if let Some(digit) = input.iter().find(|e| e.len() == 2) {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(1, digit);
         };
 
         if let Some(digit) = input.iter().find(|e| e.len() == 4) {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(4, digit);
         };
 
         if let Some(digit) = input.iter().find(|e| e.len() == 3) {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(7, digit);
         };
 
         if let Some(digit) = input.iter().find(|e| e.len() == 7) {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(8, digit);
         };
 
@@ -68,7 +68,7 @@ impl Digits {
             .find(|e| e.len() == 5 && map[&1].wires.iter().all(|w| e.wires.contains(w)))
         {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(3, digit);
         }
 
@@ -77,7 +77,7 @@ impl Digits {
             .find(|e| e.len() == 6 && map[&4].wires.iter().all(|w| e.wires.contains(w)))
         {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(9, digit);
         }
 
@@ -86,13 +86,13 @@ impl Digits {
             .find(|e| e.len() == 5 && e.wires.iter().all(|w| map[&9].wires.contains(w)))
         {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(5, digit);
         }
 
         if let Some(digit) = input.iter().find(|e| e.len() == 5) {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(2, digit);
         }
 
@@ -101,7 +101,7 @@ impl Digits {
             .find(|e| map[&5].wires.iter().all(|w| e.wires.contains(w)))
         {
             let digit = digit.clone();
-            input.remove(digit);
+            input.remove(&digit);
             map.insert(6, digit);
         }
 
@@ -164,6 +164,7 @@ impl FromStr for Digit {
     }
 }
 
+#[allow(clippy::derive_hash_xor_eq)]
 impl Hash for Digit {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write_u8(self.wires.iter().map(|a| 1 << (*a as u8)).sum::<u8>())
