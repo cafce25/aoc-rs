@@ -85,7 +85,7 @@ impl OpCode {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Machine {
     pub memory: Memory,
     ip: usize,
@@ -159,6 +159,7 @@ impl Machine {
     pub fn input(&mut self, input: Atom) {
         self.input.push_back(input)
     }
+
     pub fn input_iter<I>(&mut self, input: I)
     where
         I: IntoIterator<Item = Atom>,
@@ -170,7 +171,9 @@ impl Machine {
     }
 
     fn op_code(&self, ip: usize) -> OpCode {
-        if ip >= self.memory.len() { return OpCode::Halt; }
+        if ip >= self.memory.len() {
+            return OpCode::Halt;
+        }
         let op_code = self.memory[ip] % 100;
         let param_mode1 = (self.memory[ip] / 100 % 10) as u8;
         let param_mode2 = (self.memory[ip] / 1000 % 10) as u8;

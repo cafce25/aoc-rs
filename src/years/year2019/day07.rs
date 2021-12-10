@@ -1,5 +1,6 @@
 use super::intcode::Machine;
 use itertools::Itertools as _;
+use std::{cell::RefCell, ops::ControlFlow};
 
 pub struct DayGen;
 
@@ -30,11 +31,15 @@ impl crate::Day for Day {
         (0..=4)
             .permutations(5)
             .map(|phases| {
-                let amps = vec![Machine::from(&self.input); 5];
-                amps.into_iter()
-                    .zip(phases)
-                    .fold(0i64, |input, (mut amp, phase)| {
-                        amp.input_iter(vec![phase, input]);
+                phases
+                    .into_iter()
+                    .map(|phase| {
+                        let mut m = Machine::from(&self.input);
+                        m.input(phase);
+                        m
+                    })
+                    .fold(0i64, |input, mut amp| {
+                        amp.input(input);
                         amp.last().unwrap()
                     })
             })
@@ -56,16 +61,22 @@ impl crate::Day for Day {
                     })
                     .collect();
 
-                let mut input = 0;
-                'outer: loop {
-                    for amp in amps.iter_mut() {
+                match amps
+                    .iter_mut()
+                    .map(RefCell::new)
+                    .collect::<Vec<_>>()
+                    .iter()
+                    .cycle()
+                    .try_fold(0, |input, amp| {
+                        let mut amp = amp.borrow_mut();
                         amp.input(input);
                         if let Some(n) = amp.next() {
-                            input = n
+                            ControlFlow::Continue(n)
                         } else {
-                            break 'outer input;
+                            ControlFlow::Break(input)
                         }
-                    }
+                    }) {
+                    ControlFlow::Continue(n) | ControlFlow::Break(n) => n,
                 }
             })
             .max()
