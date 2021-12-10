@@ -3,6 +3,7 @@ use std::{
     fmt::{Debug, Formatter, Result},
     ops::{Index, IndexMut},
 };
+use itertools::Itertools as _;
 
 type Atom = i64;
 pub struct Machine {
@@ -15,7 +16,7 @@ pub struct Machine {
 impl Debug for Machine {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         f.debug_struct("Machine")
-            .field("memory", &self.memory)
+            .field("memory", &self.memory.0.iter().map(i64::to_string).join(", "))
             .field("ip", &self.ip)
             .field("halt", &self.halt)
             .field("output", &self.output)
@@ -68,15 +69,20 @@ enum OpCode {
     Mul(Parameter, Parameter, Parameter),
     Input(Parameter),
     Output(Parameter),
+    JumpIfTrue(Parameter, Parameter),
+    JumpIfFalse(Parameter, Parameter),
+    LessThan(Parameter, Parameter, Parameter),
+    Equals(Parameter, Parameter, Parameter),
     Halt,
 }
 
 impl OpCode {
     fn len(&self) -> usize {
         match self {
-            Self::Add(..) | Self::Mul(..) => 4,
+            Self::Add(..) | Self::Mul(..) | Self::LessThan(..) | Self::Equals(..) => 4,
             Self::Input(..) | Self::Output(..) => 2,
             Self::Halt => 0,
+            Self::JumpIfTrue(..) | Self::JumpIfFalse(..) => 3,
         }
     }
 }
@@ -101,6 +107,30 @@ impl Machine {
                 }
             }
             Output(input) => self.output.push(self.memory.get(input)),
+            JumpIfTrue(b, t) => {
+                if self.memory.get(b) != 0 {
+                    self.ip = self.memory.get(t) as usize;
+                }
+            }
+            JumpIfFalse(b, t) => {
+                if self.memory.get(b) == 0 {
+                    self.ip = self.memory.get(t) as usize;
+                }
+            }
+            LessThan(in1, in2, out) => {
+                *self.memory.get_mut(out) = if self.memory.get(in1) < self.memory.get(in2) {
+                    1
+                } else {
+                    0
+                }
+            }
+            Equals(in1, in2, out) => {
+                *self.memory.get_mut(out) = if self.memory.get(in1) == self.memory.get(in2) {
+                    1
+                } else {
+                    0
+                }
+            }
         };
     }
     pub fn run(&mut self) {
@@ -132,8 +162,26 @@ impl Machine {
                 Parameter::new(param_mode2, self.memory[ip + 2]),
                 Parameter::new(param_mode3, self.memory[ip + 3]),
             ),
-            3 => OpCode::Input(Parameter::new(0, self.memory[ip + 1])),
+            3 => OpCode::Input(Parameter::new(param_mode1, self.memory[ip + 1])),
             4 => OpCode::Output(Parameter::new(param_mode1, self.memory[ip + 1])),
+            5 => OpCode::JumpIfTrue(
+                Parameter::new(param_mode1, self.memory[ip + 1]),
+                Parameter::new(param_mode2, self.memory[ip + 2]),
+            ),
+            6 => OpCode::JumpIfFalse(
+                Parameter::new(param_mode1, self.memory[ip + 1]),
+                Parameter::new(param_mode2, self.memory[ip + 2]),
+            ),
+            7 => OpCode::LessThan(
+                Parameter::new(param_mode1, self.memory[ip + 1]),
+                Parameter::new(param_mode2, self.memory[ip + 2]),
+                Parameter::new(param_mode3, self.memory[ip + 3]),
+            ),
+            8 => OpCode::Equals(
+                Parameter::new(param_mode1, self.memory[ip + 1]),
+                Parameter::new(param_mode2, self.memory[ip + 2]),
+                Parameter::new(param_mode3, self.memory[ip + 3]),
+            ),
             99 => OpCode::Halt,
             _ => unimplemented!(),
         }
@@ -161,7 +209,8 @@ impl From<&Vec<Atom>> for Machine {
 impl Parameter {
     fn new(param_mode: u8, ip: Atom) -> Parameter {
         match param_mode {
-            0 if ip > 0 => Self::Position(ip as usize),
+            0 if ip >= 0 => Self::Position(ip as usize),
+            0 => panic!("ip smaller than 0"),
             1 => Self::Immediate(ip),
             _ => unimplemented!(),
         }
