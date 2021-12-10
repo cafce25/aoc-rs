@@ -1,4 +1,4 @@
-mod years;
+pub mod years;
 
 pub const MIN_YEAR: i32 = 2015;
 pub use years::YEARS;
