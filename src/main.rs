@@ -88,10 +88,10 @@ fn main() {
     }
 }
 
-fn run_day(
-    day: &(dyn aoc::DayGen + Sync),
-    input_str: &str,
-    sample_str: &str,
+fn run_day<'a>(
+    day: &'a (dyn aoc::DayGen + Sync),
+    input_str: &'a str,
+    sample_str: &'a str,
     day_num: u32,
     sample: bool,
     part: Part,
