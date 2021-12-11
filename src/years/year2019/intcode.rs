@@ -59,7 +59,8 @@ pub struct Machine {
     pub halt: bool,
     input: VecDeque<Atom>,
     output: VecDeque<Atom>,
-    relative_base: i64,
+    relative_base: Atom,
+    empty: Atom,
 }
 
 impl Iterator for Machine {
@@ -81,31 +82,106 @@ impl Machine {
         use OpCode::*;
         match op_code {
             Add(in1, in2, out) => {
+                #[cfg(test)]
+                {
+                    println!(
+                        "{:5}: add {:?}({}) {:?}({}) {:?}({})",
+                        ip,
+                        in1,
+                        self[(in1, ip + 1)],
+                        in2,
+                        self[(in2, ip + 2)],
+                        out,
+                        self[(out, ip + 3)]
+                    );
+                }
                 self[(out, ip + 3)] = self[(in1, ip + 1)] + self[(in2, ip + 2)];
             }
             Mul(in1, in2, out) => {
+                #[cfg(test)]
+                {
+                    println!(
+                        "{:5}: mul {:?}({}) {:?}({}) {:?}({})",
+                        ip,
+                        in1,
+                        self[(in1, ip + 1)],
+                        in2,
+                        self[(in2, ip + 2)],
+                        out,
+                        self[(out, ip + 3)]
+                    );
+                }
                 self[(out, ip + 3)] = self[(in1, ip + 1)] * self[(in2, ip + 2)];
             }
             Halt => {
+                #[cfg(test)]
+                {
+                    println!("{:5}: hcf", ip);
+                }
                 self.halt = true;
             }
-            Input(out) => {
+            Input(dest) => {
+                #[cfg(test)]
+                {
+                    println!("{:5}: in {:?}({})", ip, dest, self[(dest, ip + 1)]);
+                }
                 if let Some(val) = self.input.pop_front() {
-                    self[(out, ip + 1)] = val
+                    self[(dest, ip + 1)] = val
                 }
             }
-            Output(input) => self.output.push_back(self[(input, ip + 1)]),
+            Output(source) => {
+                #[cfg(test)]
+                {
+                    println!("{:5}: out {:?}({})", ip, source, self.memory[ip + 1]);
+                }
+                self.output.push_back(self[(source, ip + 1)])
+            }
             JumpIfTrue(b, t) => {
+                #[cfg(test)]
+                {
+                    println!(
+                        "{:5}: jt {:?}({}) {:?}({})",
+                        ip,
+                        b,
+                        self[(b, ip + 1)],
+                        t,
+                        self[(t, ip + 2)]
+                    );
+                }
                 if self[(b, ip + 1)] != 0 {
                     self.ip = self[(t, ip + 2)] as usize;
                 }
             }
             JumpIfFalse(b, t) => {
+                #[cfg(test)]
+                {
+                    println!(
+                        "{:5}: jf {:?}({}) {:?}({})",
+                        ip,
+                        b,
+                        self[(b, ip + 1)],
+                        t,
+                        self[(t, ip + 2)]
+                    );
+                }
                 if self[(b, ip + 1)] == 0 {
                     self.ip = self[(t, ip + 2)] as usize;
                 }
             }
             LessThan(in1, in2, out) => {
+                #[cfg(test)]
+                {
+                    println!(
+                        "{:5}: lt {:?}({}) {:?}({}) {:?}({})",
+                        ip,
+                        in1,
+                        self[(in1, ip + 1)],
+                        in2,
+                        self[(in2, ip + 2)],
+                        out,
+                        self[(out, ip + 3)]
+                    );
+                }
                 self[(out, ip + 3)] = if self[(in1, ip + 1)] < self[(in2, ip + 2)] {
                     1
                 } else {
@@ -113,14 +189,31 @@ impl Machine {
                 }
             }
             Equals(in1, in2, out) => {
+                #[cfg(test)]
+                {
+                    println!(
+                        "{:5}: eq {:?}({}) {:?}({}) {:?}({})",
+                        ip,
+                        in1,
+                        self[(in1, ip + 1)],
+                        in2,
+                        self[(in2, ip + 2)],
+                        out,
+                        self[(out, ip + 3)]
+                    );
+                }
                 self[(out, ip + 3)] = if self[(in1, ip + 1)] == self[(in2, ip + 2)] {
                     1
                 } else {
                     0
                 }
             }
-            AdjustRelativeBase(input) => {
-                self.relative_base = self[(input, ip + 1)];
+            AdjustRelativeBase(adj) => {
+                #[cfg(test)]
+                {
+                    println!("{:5}: adj {:?}({})", ip, adj, self.memory[ip + 1]);
+                }
+                self.relative_base += self[(adj, ip + 1)];
             }
         };
     }
@@ -188,8 +281,17 @@ impl Machine {
         }
     }
 
+    fn reserve(&mut self, idx: usize) {
+        if self.memory.len() <= idx {
+            let required = idx - self.memory.len();
+            self.memory.reserve(required);
+            while self.memory.len() <= idx {
+                self.memory.push(0);
+            }
+        }
+    }
     fn idx(&self, mode: PMode, idx: usize) -> usize {
-        match mode {
+        let idx = match mode {
             PMode::Immediate => idx,
             PMode::Positional => {
                 let val = self.memory[idx];
@@ -205,20 +307,40 @@ impl Machine {
                 }
                 val as usize
             }
-        }
+        };
+
+        idx
     }
 }
 
 impl Index<(PMode, usize)> for Machine {
     type Output = i64;
     fn index(&self, (mode, idx): (PMode, usize)) -> &i64 {
-        &self.memory[self.idx(mode, idx)]
+        let idx = self.idx(mode, idx);
+        if idx >= self.memory.len() {
+            &self.empty
+        } else {
+            &self.memory[idx]
+        }
     }
 }
 
 impl IndexMut<(PMode, usize)> for Machine {
     fn index_mut(&mut self, (mode, idx): (PMode, usize)) -> &mut i64 {
         let idx = self.idx(mode, idx);
+        self.reserve(idx);
+        &mut self[idx]
+    }
+}
+
+impl Index<usize> for Machine {
+    type Output = i64;
+    fn index(&self, idx: usize) -> &i64 {
+        &self.memory[idx]
+    }
+}
+impl IndexMut<usize> for Machine {
+    fn index_mut(&mut self, idx: usize) -> &mut i64 {
         &mut self.memory[idx]
     }
 }
@@ -232,6 +354,7 @@ impl From<Vec<Atom>> for Machine {
             input: VecDeque::new(),
             output: VecDeque::new(),
             relative_base: 0,
+            empty: 0,
         }
     }
 }
@@ -242,8 +365,8 @@ impl From<&[Atom]> for Machine {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    #![allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -328,12 +451,10 @@ mod tests {
         let mut machine = Machine::from(&memory[..]);
         machine.input(1);
         machine.run();
-        dbg!(&machine.memory[..]);
         assert_eq!(machine.next(), Some(1));
         let mut machine = Machine::from(&memory[..]);
         machine.input(-1);
         machine.run();
-        dbg!(&machine.memory[..]);
         assert_eq!(machine.next(), Some(1));
     }
 
@@ -367,5 +488,29 @@ mod tests {
         let mut machine = Machine::from(&memory[..]);
         machine.input(10);
         assert_eq!(machine.next(), Some(1001));
+    }
+
+    #[test]
+    fn quine_test() {
+        let memory = [
+            109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
+        ];
+        let machine = Machine::from(&memory[..]);
+        let output: Vec<_> = machine.collect();
+        assert_eq!(output, memory);
+    }
+
+    #[test]
+    fn large_product_test() {
+        let memory = [1102, 34915192, 34915192, 7, 4, 7, 99, 0];
+        let machine = Machine::from(&memory[..]);
+        let output: Vec<_> = machine.collect();
+        assert_eq!(output, [1219070632396864]);
+    }
+    #[test]
+    fn large_number_test() {
+        let memory = [104, 1125899906842624, 99];
+        let mut machine = Machine::from(&memory[..]);
+        assert_eq!(machine.next(), Some(memory[1]));
     }
 }
