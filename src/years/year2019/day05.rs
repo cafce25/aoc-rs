@@ -40,9 +40,8 @@ impl crate::Day for Day {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    // for some reason rust analyzer doesn't recognize this is being used
-    #![allow(unused_imports)]
     use super::Day;
     #[test]
     fn parts_test() {

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::{
     collections::{HashMap, HashSet},
     hash::{Hash, Hasher},
@@ -29,10 +28,6 @@ struct Digits {
 impl Digits {
     fn outputs<'a>(&'a self) -> impl Iterator<Item = &Digit> + 'a {
         self.output.iter()
-    }
-
-    fn inputs<'a>(&'a self) -> impl Iterator<Item = &Digit> + 'a {
-        self.input.iter()
     }
 
     fn value(&self) -> u64 {
