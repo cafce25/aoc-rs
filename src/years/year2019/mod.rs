@@ -1,3 +1,3 @@
 include!("./day_mods.rs");
 
-mod intcode;
+pub mod intcode;

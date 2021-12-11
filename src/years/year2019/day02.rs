@@ -1,4 +1,4 @@
-use super::intcode::Machine;
+use super::intcode::{Machine, Intcode};
 pub struct DayGen;
 
 impl crate::DayGen for DayGen {
@@ -11,7 +11,7 @@ impl crate::DayGen for DayGen {
     }
 }
 
-type Input = Vec<i64>;
+type Input = Intcode;
 
 struct Day {
     input: Input,
@@ -25,7 +25,7 @@ impl Day {
 
 impl crate::Day for Day {
     fn part1(&self) -> String {
-        let mut machine = Machine::from(&self.input);
+        let mut machine = Machine::from(&self.input[..]);
         machine.memory[1] = 12;
         machine.memory[2] = 2;
         machine.run();
@@ -35,7 +35,7 @@ impl crate::Day for Day {
     fn part2(&self) -> String {
         for noun in 0..=99 {
             for verb in 0..=99 {
-                let mut machine = Machine::from(&self.input);
+                let mut machine = Machine::from(&self.input[..]);
                 machine.memory[1] = noun;
                 machine.memory[2] = verb;
                 machine.run();

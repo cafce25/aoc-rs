@@ -1,4 +1,4 @@
-use super::intcode::Machine;
+use super::intcode::{Machine, Intcode};
 use itertools::Itertools as _;
 use std::{cell::RefCell, ops::ControlFlow};
 
@@ -10,7 +10,7 @@ impl crate::DayGen for DayGen {
     }
 }
 
-type Input = Vec<i64>;
+type Input = Intcode;
 
 struct Day {
     input: Input,
@@ -34,7 +34,7 @@ impl crate::Day for Day {
                 phases
                     .into_iter()
                     .map(|phase| {
-                        let mut m = Machine::from(&self.input);
+                        let mut m = Machine::from(&self.input[..]);
                         m.input(phase);
                         m
                     })
@@ -55,7 +55,7 @@ impl crate::Day for Day {
                 let mut amps: Vec<_> = phases
                     .into_iter()
                     .map(|p| {
-                        let mut m = Machine::from(&self.input);
+                        let mut m = Machine::from(&self.input[..]);
                         m.input(p);
                         m
                     })
