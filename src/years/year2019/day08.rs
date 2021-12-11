@@ -44,7 +44,6 @@ impl Image {
 
     fn get(&self, x: usize, y: usize) -> char {
         for l in 0..self.layer_len() {
-            dbg!(x, y, l);
             match self[(x, y, l)] {
                 0 => return ' ',
                 1 => return '█',
