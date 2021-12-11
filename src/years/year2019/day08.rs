@@ -34,8 +34,24 @@ impl Image {
         self.width * self.height
     }
 
+    fn layer_len(&self) -> usize {
+        self.data.len() / self.layer_size()
+    }
+
     fn idx(&self, x: usize, y: usize, layer: usize) -> usize {
         x + y * self.width + layer * self.layer_size()
+    }
+
+    fn get(&self, x: usize, y: usize) -> char {
+        for l in 0..self.layer_len() {
+            dbg!(x, y, l);
+            match self[(x, y, l)] {
+                0 => return ' ',
+                1 => return '█',
+                _ => (),
+            }
+        }
+        unimplemented!();
     }
 }
 
@@ -60,13 +76,7 @@ struct Day {
 
 impl Day {
     pub fn from_str(input: &str) -> Self {
-        let input: Vec<_> = input
-            .chars()
-            .filter_map(|c| match c {
-                c @ '0'..='9' => Some(c as u8 - '0' as u8),
-                _ => None,
-            })
-            .collect();
+        let input: Vec<_> = input.chars().map(|c| c as u8 - '0' as u8).collect();
         Self {
             input: Image::new(&input, 25, 6),
         }
@@ -93,6 +103,9 @@ impl crate::Day for Day {
     }
 
     fn part2(&self) -> String {
-        todo!()
+        String::from("\n")
+            + &(0..6)
+                .map(|y| (0..25).map(|x| self.input.get(x, y).to_string()).join(""))
+                .join("\n")
     }
 }
