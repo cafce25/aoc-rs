@@ -64,6 +64,28 @@ impl crate::Day for Day {
     }
 
     fn part2(&self) -> String {
-        todo!()
+        let dots = self.input.1.iter().fold(self.input.0.clone(), |dots, fold| {
+            dots.into_iter().map(|(x, y)| {
+                match fold.clone() {
+                    Fold::Up(fy) if y >= fy => (x, 2*fy - y),
+                    Fold::Left(fx) if x > fx => (2*fx - x, y),
+                    _ => (x, y),
+                }
+            }).collect::<HashSet<_>>()
+        });
+
+        let mut image = String::from("\n\n");
+        image.reserve(dots.len()*6);
+        for y in 0..6 {
+            for x in 0..40 {
+                if dots.contains(&(x, y)) {
+                    image.push('#');
+                } else {
+                    image.push(' ');
+                }
+            }
+            image.push('\n')
+        }
+        image
     }
 }
