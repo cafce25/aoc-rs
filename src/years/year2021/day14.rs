@@ -100,10 +100,21 @@ mod tests {
     use super::*;
     use crate::Day as _;
 
+    extern crate test;
+
     #[test]
     fn part1_test() {
         let input = crate::YEARS[&2021][&14].2;
         let day = Day::from_str(input);
         assert_eq!("1588", day.part1());
+    }
+
+    #[bench]
+    fn part2(b: &mut test::Bencher) {
+        let input = crate::YEARS[&2021][&14].2;
+        let day = Day::from_str(input);
+        b.iter(|| {
+            day.part2();
+        })
     }
 }

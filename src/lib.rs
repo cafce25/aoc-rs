@@ -1,4 +1,4 @@
-#![feature(drain_filter)]
+#![feature(drain_filter, test)]
 pub mod years;
 
 pub const MIN_YEAR: i32 = 2015;
