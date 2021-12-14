@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, LinkedList, linked_list::CursorMut}, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
 pub struct DayGen;
 
@@ -9,7 +9,7 @@ impl crate::DayGen for DayGen {
 }
 
 struct Input {
-    template: String,
+    template: Vec<char>,
     insertions: HashMap<(char, char), char>,
 }
 
@@ -21,7 +21,7 @@ impl FromStr for Input {
             .split_once("\n\n")
             .ok_or_else(|| "Could not find \n\n in input".to_string())?;
         let rule_err = || "Invalid rule".to_string();
-        let template = template.to_string();
+        let template = template.chars().collect();
         let insertions = insertions
             .lines()
             .map(|l| {
@@ -34,7 +34,7 @@ impl FromStr for Input {
                     iter.nth(4).ok_or_else(rule_err)?,
                 ))
             })
-            .collect::<Result<HashMap<_,_>,String>>()?;
+            .collect::<Result<HashMap<_, _>, String>>()?;
         Ok(Self {
             template,
             insertions,
@@ -53,30 +53,34 @@ impl Day {
     }
 }
 
-fn peek2(cur: &mut CursorMut<char>) -> Option<(char, char)> {
-    let first = *cur.current()?;
-    let second = *cur.peek_next()?;
-    Some((first, second))
-}
-
 impl Day {
     fn run(&self, steps: usize) -> usize {
-        let mut poly: LinkedList<char> = self.input.template.chars().collect();
-        for _ in 0..steps {
-            let mut cur = poly.cursor_front_mut();
-            while let Some(pair) = peek2(&mut cur) {
-                if let Some(ins) = self.input.insertions.get(&pair) {
-                    cur.insert_after(*ins);
-                    cur.move_next();
+        let mut pairs = HashMap::new();
+        self.input.template.windows(2).for_each(|pair| *pairs.entry((pair[0], pair[1])).or_insert(0) += 1);
+        let pairs = (0..steps).fold(pairs, |pairs, _| {
+            let mut n_pairs = HashMap::new();
+            pairs.iter().for_each(|(p@(a, b), v)| {
+                if let Some(i) = self.input.insertions.get(p) {
+                    *n_pairs.entry((*a, *i)).or_insert(0) += v;
+                    *n_pairs.entry((*i, *b)).or_insert(0) += v;
                 }
-                cur.move_next();
-            }
-        }
-        let mut hist :HashMap<char, usize> = HashMap::new();
-        poly.iter().for_each(|c| *hist.entry(*c).or_insert(0) += 1);
-        let (min, max) = hist.into_values().fold((usize::MAX, 0), |(min, max), n| {
-            (min.min(n), max.max(n))
+                else {
+                    *n_pairs.entry((*a, *b)).or_insert(0) += v;
+                }
+            });
+            n_pairs
         });
+
+        let mut hist = HashMap::new();
+        pairs.iter().for_each(|((k, _), v)| *hist.entry(*k).or_insert(0) += v);
+
+        *hist
+            .entry(*self.input.template.last().unwrap())
+            .or_insert(0) += 1;
+
+        let (min, max) = hist
+            .into_values()
+            .fold((usize::MAX, 0), |(min, max), n| (min.min(n), max.max(n)));
         max - min
     }
 }
@@ -87,15 +91,14 @@ impl crate::Day for Day {
     }
 
     fn part2(&self) -> String {
-        todo!()
+        self.run(40).to_string()
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::Day as _;
     use super::*;
+    use crate::Day as _;
 
     #[test]
     fn part1_test() {
