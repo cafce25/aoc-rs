@@ -136,12 +136,18 @@ fn generate_day<S: AsRef<str>>(
                 year,
                 day,
                 if input_path.is_file() {
-                    format!("include_str!(\"./year{}/{}\").trim()", year, input_file_name)
+                    format!(
+                        "include_str!(\"./year{}/{}\").trim()",
+                        year, input_file_name
+                    )
                 } else {
                     format!("\"no input for {day}\"", day = day)
                 },
                 if sample_path.is_file() {
-                    format!("include_str!(\"./year{}/{}\").trim()", year, sample_file_name)
+                    format!(
+                        "include_str!(\"./year{}/{}\").trim()",
+                        year, sample_file_name
+                    )
                 } else {
                     format!("\"no example for {day}\"", day = day)
                 },
