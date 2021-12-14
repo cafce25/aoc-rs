@@ -75,7 +75,7 @@ struct Day {
 
 impl Day {
     pub fn from_str(input: &str) -> Self {
-        let input: Vec<_> = input.chars().map(|c| c as u8 - '0' as u8).collect();
+        let input: Vec<_> = input.chars().map(|c| c as u8 - b'0').collect();
         Self {
             input: Image::new(&input, 25, 6),
         }

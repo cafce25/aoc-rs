@@ -30,12 +30,11 @@ impl Day {
         let input = input
             .lines()
             .enumerate()
-            .map(|(row, line)| {
+            .flat_map(|(row, line)| {
                 line.chars()
                     .enumerate()
-                    .map(move |(col, c)| ((row, col), c as u8 - '0' as u8))
+                    .map(move |(col, c)| ((row, col), c as u8 - b'0'))
             })
-            .flatten()
             .collect();
         Self {
             input: Oktopi(input),
@@ -77,10 +76,8 @@ fn grow_all(map: &mut Oktopi) -> usize {
     while !to_be_grown.is_empty() {
         let grow @ (x, y) = to_be_grown.pop().unwrap();
         if let Some(oktopus) = map.get_mut(&grow) {
-            if {
-                *oktopus += 1;
-                *oktopus == 10
-            } {
+            *oktopus += 1;
+            if *oktopus == 10 {
                 let mut neighbours = ADJACENT
                     .iter()
                     .map(|(dx, dy)| ((x as i8 + dx) as usize, (y as i8 + dy) as usize))

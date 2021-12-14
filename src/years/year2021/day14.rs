@@ -19,7 +19,7 @@ impl FromStr for Input {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (template, insertions) = s
             .split_once("\n\n")
-            .ok_or_else(|| "Could not find \n\n in input".to_string())?;
+            .ok_or_else(|| "Could not find \"\\n\\n\" in input".to_string())?;
         let rule_err = || "Invalid rule".to_string();
         let template = template.chars().collect();
         let insertions = insertions

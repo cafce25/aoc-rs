@@ -183,7 +183,7 @@ impl crate::Day for Day {
         for y in 0..6 {
             paint_string.push('\n');
             for x in 0..42 {
-                match final_paint.get(&(x, y)).map(|x| *x).unwrap_or(Color::Black) {
+                match final_paint.get(&(x, y)).copied().unwrap_or(Color::Black) {
                     Color::White => paint_string.push('█'),
                     Color::Black => paint_string.push(' '),
                 }

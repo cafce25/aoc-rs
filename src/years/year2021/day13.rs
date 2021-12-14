@@ -66,7 +66,7 @@ impl crate::Day for Day {
     fn part2(&self) -> String {
         let dots = self.input.1.iter().fold(self.input.0.clone(), |dots, fold| {
             dots.into_iter().map(|(x, y)| {
-                match fold.clone() {
+                match *fold {
                     Fold::Up(fy) if y >= fy => (x, 2*fy - y),
                     Fold::Left(fx) if x > fx => (2*fx - x, y),
                     _ => (x, y),
