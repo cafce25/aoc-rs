@@ -39,7 +39,26 @@ impl crate::Day for Day {
     }
 
     fn part2(&self) -> String {
-        todo!()
+        let height = self.input.len();
+        let width = self.input[0].len();
+        let mut real_input = vec![vec![0; width * 5]; height * 5];
+        for mx in 0..5 {
+            for my in 0..5 {
+                for x in 0..width {
+                    for y in 0..height {
+                        real_input[y + height * my][x + width * mx] =
+                            ((self.input[y][x] + my + mx - 1) % 9) + 1;
+                    }
+                }
+            }
+        }
+        let mut map = Astar::with(
+            &real_input,
+            (0, 0),
+            (width as i32 * 5 - 1, height as i32 * 5 - 1),
+        );
+
+        map.astar().to_string()
     }
 }
 
