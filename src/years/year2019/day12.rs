@@ -1,6 +1,10 @@
 #![allow(dead_code, unused_variables)]
 
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    cmp::Ordering,
+    collections::{hash_map::Entry::Vacant, HashMap},
+    str::FromStr,
+};
 pub struct DayGen;
 
 impl crate::DayGen for DayGen {
@@ -40,15 +44,19 @@ impl Day {
                     let (pj, vj) = it.nth(j).unwrap();
                     let p_iter = pi.iter().zip(pj.iter());
                     let v_iter = vi.iter_mut().zip(vj.iter_mut());
-                    p_iter.zip(v_iter).for_each(|((pi, pj), (vi, vj))| {
-                        if pi > pj {
-                            *vi -= 1;
-                            *vj += 1;
-                        } else if pj > pi {
-                            *vi += 1;
-                            *vj -= 1;
-                        }
-                    });
+                    p_iter
+                        .zip(v_iter)
+                        .for_each(|((pi, pj), (vi, vj))| match pi.cmp(pj) {
+                            Ordering::Greater => {
+                                *vi -= 1;
+                                *vj += 1;
+                            }
+                            Ordering::Less => {
+                                *vi += 1;
+                                *vj -= 1;
+                            }
+                            _ => {}
+                        });
                 }
                 let (p, v) = &mut universe[i];
                 p.iter_mut().zip(v.iter()).for_each(|(p, v)| {
@@ -71,18 +79,21 @@ impl Day {
             let mut pos: Vec<_> = self.input.iter().map(|pos| pos[coord]).collect();
             let mut vel = vec![0; pos.len()];
             let mut i = 0;
-            while !visited.contains_key(&(pos.clone(), vel.clone())) {
-                visited.insert((pos.clone(), vel.clone()), i);
+            while let Vacant(e) = visited.entry((pos.clone(), vel.clone())) {
+                e.insert(i);
                 i += 1;
                 for i in 0..pos.len() {
                     for j in i + 1..pos.len() {
-                        if pos[i] > pos[j] {
-                            vel[i] -= 1;
-                            vel[j] += 1;
-                        }
-                        if pos[j] > pos[i] {
-                            vel[j] -= 1;
-                            vel[i] += 1;
+                        match pos[i].cmp(&pos[j]) {
+                            Ordering::Greater => {
+                                vel[i] -= 1;
+                                vel[j] += 1;
+                            }
+                            Ordering::Less => {
+                                vel[j] -= 1;
+                                vel[i] += 1;
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -186,6 +197,6 @@ mod tests {
         b.iter(|| {
             output = day.loops();
         });
-        assert_eq!(output, (vec![18, 28, 44], vec![0;3]) )
+        assert_eq!(output, (vec![18, 28, 44], vec![0; 3]))
     }
 }

@@ -139,14 +139,7 @@ impl Point {
 
 impl PartialOrd for Point {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        use Ordering::*;
-        Some(if self.angle() < other.angle() {
-            Less
-        } else if self.angle() > other.angle() {
-            Greater
-        } else {
-            Equal
-        })
+        Some(self.angle().partial_cmp(&other.angle()).unwrap_or(Ordering::Equal))
     }
 }
 
