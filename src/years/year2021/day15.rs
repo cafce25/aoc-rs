@@ -32,7 +32,7 @@ impl crate::Day for Day {
         let mut map = Astar::with(
             &self.input,
             (0, 0),
-            (self.input[0].len() as i32 - 1, self.input.len() as i32 - 1),
+            (self.input[0].len() - 1, self.input.len() - 1),
         );
 
         map.astar().to_string()
@@ -55,7 +55,7 @@ impl crate::Day for Day {
         let mut map = Astar::with(
             &real_input,
             (0, 0),
-            (width as i32 * 5 - 1, height as i32 * 5 - 1),
+            (width * 5 - 1, height * 5 - 1),
         );
 
         map.astar().to_string()
@@ -113,6 +113,7 @@ impl Astar {
         self[self.finish].unwrap()
     }
 
+    #[inline]
     fn estimate_cost(&self, (y, x): Coord) -> usize {
         (self.finish.0 - y + self.finish.1 - x) as usize
     }
@@ -120,7 +121,7 @@ impl Astar {
     fn neighbours(&self, (y, x): Coord) -> Vec<Coord> {
         [(-1, 0), (1, 0), (0, 1), (0, -1)]
             .into_iter()
-            .map(|(dy, dx)| (y + dy, x + dx))
+            .filter_map(|(dy, dx)| Some((y.checked_add_signed(dy)?, x.checked_add_signed(dx)?)))
             .filter(|coord| self.in_bounds(*coord))
             .collect()
     }
@@ -142,47 +143,47 @@ impl Astar {
             .0
     }
 
+    #[inline]
     fn get_path(&self, coord @ (y, x): Coord) -> Option<&Option<usize>> {
         if !self.in_bounds(coord) {
             return None;
         }
-        let y = y as usize;
-        let x = x as usize;
         Some(&self.path_costs[y][x])
     }
 
+    #[inline]
     fn get_path_mut(&mut self, coord @ (y, x): Coord) -> Option<&mut Option<usize>> {
         if !self.in_bounds(coord) {
             return None;
         }
-        let y = y as usize;
-        let x = x as usize;
         Some(&mut self.path_costs[y][x])
     }
 
+    #[inline]
     fn get_tile(&self, coord @ (y, x): Coord) -> Option<&usize> {
         if !self.in_bounds(coord) {
             return None;
         }
-        let y = y as usize;
-        let x = x as usize;
         Some(&self.tile_costs[y][x])
     }
 
+    #[inline]
     fn in_bounds(&self, (y, x): Coord) -> bool {
-        y >= 0 && x >= 0 && y < self.height() as i32 && x < self.width() as i32
+        y < self.height() && x < self.width() as usize
     }
 
+    #[inline]
     fn height(&self) -> usize {
         self.tile_costs.len()
     }
 
+    #[inline]
     fn width(&self) -> usize {
         self.tile_costs[0].len()
     }
 }
 
-type Coord = (i32, i32);
+type Coord = (usize, usize);
 
 impl Index<Coord> for Astar {
     type Output = Option<usize>;
@@ -196,4 +197,22 @@ impl IndexMut<Coord> for Astar {
     fn index_mut(&mut self, coords: Coord) -> &mut Self::Output {
         self.get_path_mut(coords).expect("valid index")
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Day as _;
+    extern crate test;
+
+    #[bench]
+    fn part2(b: &mut test::Bencher) {
+        let input = &crate::YEARS[&2021][&15];
+        let day = Day::from_str(input.1);
+        b.iter(|| {
+            day.part2();
+        })
+    }
+
 }
