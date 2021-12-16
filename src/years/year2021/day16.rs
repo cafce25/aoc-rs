@@ -36,8 +36,16 @@ impl crate::Day for Day {
         let mut to_visit = vec![p];
         while let Some(pack) = to_visit.pop() {
             sum += pack.version as u64;
-            if let Data::SubPackets(mut packets) = pack.data {
-                to_visit.append(&mut packets)
+            match pack.data {
+                Data::Sum(mut packets)
+                | Data::Product(mut packets)
+                | Data::Min(mut packets)
+                | Data::Max(mut packets) => to_visit.append(&mut packets),
+                Data::Literal(..) => {}
+                Data::Greater(a, b) | Data::Less(a, b) | Data::Equal(a, b) => {
+                    to_visit.push(*a);
+                    to_visit.push(*b);
+                }
             }
         }
         sum.to_string()
@@ -52,57 +60,33 @@ impl crate::Day for Day {
 #[derive(Debug, Eq, PartialEq)]
 pub struct Packet {
     version: u8,
-    type_id: TypeId,
     data: Data,
 }
 impl Packet {
     fn value(&self) -> u64 {
-        match (&self.type_id, &self.data) {
-            (_, Data::Literal(v)) => *v,
-            (TypeId::Sum, Data::SubPackets(others)) => others.iter().map(|p| p.value()).sum(),
-            (TypeId::Product, Data::SubPackets(others)) => others.iter().map(|p| p.value()).product(),
-            (TypeId::Min, Data::SubPackets(others)) => others.iter().map(|p| p.value()).min().unwrap_or(u64::MAX),
-            (TypeId::Max, Data::SubPackets(others)) => others.iter().map(|p| p.value()).max().unwrap_or(0),
-            (TypeId::Literal, Data::SubPackets(..)) => unreachable!(),
-            (TypeId::Greater, Data::SubPackets(others)) => if others[0].value() > others[1].value() { 1 } else { 0},
-            (TypeId::Less, Data::SubPackets(others)) => if others[0].value() < others[1].value() { 1 } else { 0},
-            (TypeId::Equal, Data::SubPackets(others)) => if others[0].value() == others[1].value() { 1 } else { 0},
-        }
-    }
-}
-
-#[derive(Debug, Eq, PartialEq)]
-enum TypeId {
-    Sum,
-    Product,
-    Min,
-    Max,
-    Literal,
-    Greater,
-    Less,
-    Equal,
-}
-
-impl From<u8> for TypeId {
-    fn from(raw_type_id: u8) -> Self {
-        match raw_type_id {
-            0 => TypeId::Sum,
-            1 => TypeId::Product,
-            2 => TypeId::Min,
-            3 => TypeId::Max,
-            4 => TypeId::Literal,
-            5 => TypeId::Greater,
-            6 => TypeId::Less,
-            7 => TypeId::Equal,
-            _ => unreachable!(),
+        match &self.data {
+            Data::Literal(v) => *v,
+            Data::Sum(others) => others.iter().map(|p| p.value()).sum(),
+            Data::Product(others) => others.iter().map(|p| p.value()).product(),
+            Data::Min(others) => others.iter().map(|p| p.value()).min().unwrap_or(u64::MAX),
+            Data::Max(others) => others.iter().map(|p| p.value()).max().unwrap_or(0),
+            Data::Greater(a, b) => (a.value() > b.value()) as u64,
+            Data::Less(a, b) => (a.value() < b.value()) as u64,
+            Data::Equal(a, b) => (a.value() == b.value()) as u64,
         }
     }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 enum Data {
+    Sum(Vec<Packet>),
+    Product(Vec<Packet>),
+    Min(Vec<Packet>),
+    Max(Vec<Packet>),
     Literal(u64),
-    SubPackets(Vec<Packet>),
+    Greater(Box<Packet>, Box<Packet>),
+    Less(Box<Packet>, Box<Packet>),
+    Equal(Box<Packet>, Box<Packet>),
 }
 
 #[derive(Debug)]
@@ -120,23 +104,26 @@ impl LengthType {
     }
 }
 
-impl From<u8> for LengthType {
-    fn from(raw: u8) -> Self {
+impl TryFrom<u8> for LengthType {
+    type Error = String;
+    fn try_from(raw: u8) -> Result<Self, Self::Error> {
         match raw {
-            0 => Self::Size,
-            1 => Self::Len,
-            _ => panic!("invalid length type"),
+            0 => Ok(Self::Size),
+            1 => Ok(Self::Len),
+            _ => Err(format!("invalid length type {}", raw)),
         }
     }
 }
 
 mod parsers {
-    use super::{Data, LengthType, Packet, TypeId};
+    use super::{Data, LengthType, Packet};
     use nom::{
         bits::{
             bits,
             complete::{tag, take},
         },
+        combinator::map_res,
+        error::ErrorKind,
         multi::{count, many0},
         sequence::{preceded, tuple},
         IResult,
@@ -146,9 +133,8 @@ mod parsers {
         take(3usize)(input)
     }
 
-    fn type_id(input: (&[u8], usize)) -> IResult<(&[u8], usize), TypeId> {
-        let (rest, type_id): (_, u8) = take(3usize)(input)?;
-        Ok((rest, TypeId::from(type_id)))
+    fn type_id(input: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
+        take(3usize)(input)
     }
 
     fn final_nibble(input: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
@@ -168,41 +154,81 @@ mod parsers {
     }
 
     fn length_type(input: (&[u8], usize)) -> IResult<(&[u8], usize), LengthType> {
-        let (rest, length_type): (_, u8) = take(1usize)(input)?;
-        Ok((rest, LengthType::from(length_type)))
+        map_res(take(1usize), |length_type: u8| length_type.try_into())(input)
     }
 
-    fn other_data(
-        length_type: LengthType,
-        length: usize,
-    ) -> impl Fn((&[u8], usize)) -> IResult<(&[u8], usize), Data> {
+    fn data(type_id: u8) -> impl Fn((&[u8], usize)) -> IResult<(&[u8], usize), Data> {
         move |input: (&[u8], usize)| -> IResult<(&[u8], usize), Data> {
-            if let LengthType::Size = length_type {
-                let (rest, (mut inp, l_inp)): (_, (Vec<u8>, u8)) =
-                    tuple((count(take(8usize), length / 8), take(length % 8)))(input)?;
-                if length % 8 != 0 {
-                    inp.push(l_inp << (8 - length % 8));
-                }
-                let ((_, _), packets) = many0(packet)((&inp[..], 0)).unwrap();
-                Ok((rest, Data::SubPackets(packets)))
+            if let 4 = type_id {
+                literal(input)
             } else {
-                let (rest, data) = count(packet, length)(input)?;
-                Ok((rest, Data::SubPackets(data)))
+                let (input, length_type) = length_type(input)?;
+                let (input, length) = take(length_type.bits())(input)?;
+                let (input, data) = if let LengthType::Size = length_type {
+                    let (rest, (mut inp, l_inp)): (_, (Vec<u8>, u8)) =
+                        tuple((count(take(8usize), length / 8), take(length % 8)))(input)?;
+                    if length % 8 != 0 {
+                        inp.push(l_inp << (8 - length % 8));
+                    }
+                    let (_, packets) = many0(packet)((&inp[..], 0)).unwrap();
+                    (rest, packets)
+                } else {
+                    count(packet, length)(input)?
+                };
+                Ok((
+                    input,
+                    match type_id {
+                        0 => Data::Sum(data),
+                        1 => Data::Product(data),
+                        2 => Data::Min(data),
+                        3 => Data::Max(data),
+                        5 => {
+                            let mut data = data;
+                            let b = data
+                                .pop()
+                                .expect("At least 2 subpackets in greater packets");
+                            let a = data
+                                .pop()
+                                .expect("At least 2 subpackets in greater packets");
+                            Data::Greater(Box::new(a), Box::new(b))
+                        }
+                        6 => {
+                            let mut data = data;
+                            let b = data
+                                .pop()
+                                .expect("At least 2 subpackets in greater packets");
+                            let a = data
+                                .pop()
+                                .expect("At least 2 subpackets in greater packets");
+                            Data::Less(Box::new(a), Box::new(b))
+                        }
+                        7 => {
+                            let mut data = data;
+                            let b = data
+                                .pop()
+                                .expect("At least 2 subpackets in greater packets");
+                            let a = data
+                                .pop()
+                                .expect("At least 2 subpackets in greater packets");
+                            Data::Equal(Box::new(a), Box::new(b))
+                        }
+                        _ => {
+                            return Err(nom::Err::Failure(nom::error::make_error(
+                                input,
+                                ErrorKind::Alt,
+                            )))
+                        }
+                    },
+                ))
             }
         }
     }
 
     fn packet(input: (&[u8], usize)) -> IResult<(&[u8], usize), Packet> {
         let (input, (version, type_id)) = tuple((version, type_id))(input)?;
-        let (rest, data) = match type_id {
-            TypeId::Literal => literal(input)?,
-            _ => {
-                let (input, length_type) = length_type(input)?;
-                let (input, length) = take(length_type.bits())(input)?;
-                other_data(length_type, length)(input)?
-            }
-        };
-        Ok((rest, Packet { type_id, version, data }))
+
+        let (rest, data) = data(type_id)(input)?;
+        Ok((rest, Packet { version, data }))
     }
     fn parse_input(input: &[u8]) -> IResult<&[u8], Packet> {
         bits(packet)(input)
@@ -231,7 +257,6 @@ mod tests {
         assert_eq!(
             Packet {
                 version: 6,
-                type_id: TypeId::Literal,
                 data: Data::Literal(2021)
             },
             parsers::parse(&day.input[..])
@@ -245,19 +270,16 @@ mod tests {
         assert_eq!(
             Packet {
                 version: 1,
-                type_id: TypeId::Less,
-                data: Data::SubPackets(vec![
-                    Packet {
+                data: Data::Less(
+                    Box::new(Packet {
                         version: 6,
-                        type_id: TypeId::Literal,
                         data: Data::Literal(10)
-                    },
-                    Packet {
+                    }),
+                    Box::new(Packet {
                         version: 2,
-                        type_id: TypeId::Literal,
                         data: Data::Literal(20)
-                    },
-                ])
+                    }),
+                )
             },
             parsers::parse(&day.input[..])
         );
@@ -270,21 +292,17 @@ mod tests {
         assert_eq!(
             Packet {
                 version: 7,
-                type_id: TypeId::Max,
-                data: Data::SubPackets(vec![
+                data: Data::Max(vec![
                     Packet {
                         version: 2,
-                        type_id: TypeId::Literal,
                         data: Data::Literal(1)
                     },
                     Packet {
                         version: 4,
-                        type_id: TypeId::Literal,
                         data: Data::Literal(2)
                     },
                     Packet {
                         version: 1,
-                        type_id: TypeId::Literal,
                         data: Data::Literal(3)
                     },
                 ])
