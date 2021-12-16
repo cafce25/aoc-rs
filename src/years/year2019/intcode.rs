@@ -228,6 +228,10 @@ impl Machine {
         self.output.drain(..).collect()
     }
 
+    pub fn set_input<V: Into<VecDeque<i64>>>(&mut self, v: V) {
+        self.input = v.into();
+    }
+
     pub fn input(&mut self, input: Atom) {
         self.input.push_back(input)
     }
