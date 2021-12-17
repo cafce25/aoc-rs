@@ -10,8 +10,6 @@ impl crate::DayGen for DayGen {
     }
 }
 
-type Input = Intcode;
-
 #[derive(Copy, Clone, Debug)]
 enum Direction {
     Up,
@@ -137,10 +135,10 @@ impl Simulator {
     }
 }
 
-impl From<&Input> for Simulator {
-    fn from(input: &Input) -> Self {
+impl From<&Intcode> for Simulator {
+    fn from(input: &Intcode) -> Self {
         Self {
-            robot: Robot::from(Machine::from(input.clone())),
+            robot: Robot::from(Machine::from(&input[..])),
             pos: (0, 0),
             robot_facing: Direction::Up,
             hull: HashMap::new(),
@@ -149,17 +147,12 @@ impl From<&Input> for Simulator {
 }
 
 struct Day {
-    input: Input,
+    input: Intcode,
 }
 
 impl Day {
     pub fn from_str(input: &str) -> Self {
-        let input = input
-            .split(',')
-            .map(str::parse)
-            .map(Result::unwrap)
-            .collect();
-        Self { input }
+        Self { input: input.parse().unwrap() }
     }
 }
 

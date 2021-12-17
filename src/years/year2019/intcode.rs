@@ -1,13 +1,41 @@
+use anyhow::{Error, Result};
 use std::{
     collections::VecDeque,
     fmt::Debug,
     iter::IntoIterator,
-    ops::{Index, IndexMut},
+    ops::{Deref, DerefMut, Index, IndexMut},
+    str::FromStr,
 };
 
 type Atom = i64;
 
-pub type Intcode = Vec<Atom>;
+pub struct Intcode(Vec<Atom>);
+
+impl FromStr for Intcode {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Intcode(
+            s.split(',')
+                .map(|n| n.parse())
+                .collect::<Result<Vec<_>, _>>()?,
+        ))
+    }
+}
+
+impl Deref for Intcode {
+    type Target = Vec<Atom>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Intcode {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 enum PMode {

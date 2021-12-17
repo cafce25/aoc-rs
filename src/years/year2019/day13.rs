@@ -10,20 +10,13 @@ impl crate::DayGen for DayGen {
     }
 }
 
-type Input = Intcode;
-
 struct Day {
-    input: Input,
+    input: Intcode,
 }
 
 impl Day {
     pub fn from_str(input: &str) -> Self {
-        let input = input
-            .split(',')
-            .map(str::parse)
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
-        Self { input }
+        Self { input: input.parse().unwrap() }
     }
 }
 
@@ -109,10 +102,10 @@ impl Iterator for Arcade {
     }
 }
 
-impl<I: AsRef<Intcode>> From<I> for Arcade {
-    fn from(i: I) -> Self {
+impl From<&Intcode> for Arcade {
+    fn from(i: &Intcode) -> Self {
         Arcade {
-            chip: Machine::from(i.as_ref().clone()),
+            chip: Machine::from(&i[..]),
             screen: HashMap::new(),
             points: 0,
         }

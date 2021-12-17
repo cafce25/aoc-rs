@@ -7,19 +7,13 @@ impl crate::DayGen for DayGen {
     }
 }
 
-type Input = Intcode;
-
 struct Day {
-    input: Input,
+    input: Intcode,
 }
 
 impl Day {
     pub fn new(input: &str) -> Self {
-        let input = input
-            .trim()
-            .split(',')
-            .filter_map(|line| line.parse().ok())
-            .collect();
+        let input = input.parse().unwrap();
         Self { input }
     }
     pub fn run(&self, input: i64) -> i64 {

@@ -7,19 +7,13 @@ impl crate::DayGen for DayGen {
     }
 }
 
-type Input = Intcode;
-
 struct Day {
-    input: Input,
+    input: Intcode,
 }
 
 impl Day {
     pub fn from_str(input: &str) -> Self {
-        let input = input
-            .split(',')
-            .filter_map(|line| line.parse().ok())
-            .collect();
-        Self { input }
+        Self { input: input.parse().unwrap() }
     }
     fn run(&self, input: i64) -> Vec<i64> {
         let mut machine = Machine::from(&self.input[..]);

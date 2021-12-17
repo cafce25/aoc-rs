@@ -3,23 +3,17 @@ pub struct DayGen;
 
 impl crate::DayGen for DayGen {
     fn input(&self, input: &str) -> Box<dyn crate::Day> {
-        let input = input
-            .split(',')
-            .filter_map(|line| line.trim().parse().ok())
-            .collect();
         Box::new(Day::new(input))
     }
 }
 
-type Input = Intcode;
-
 struct Day {
-    input: Input,
+    input: Intcode,
 }
 
 impl Day {
-    pub fn new(input: Input) -> Self {
-        Self { input }
+    pub fn new(input: &str) -> Self {
+        Self { input: input.parse().unwrap() }
     }
 }
 
