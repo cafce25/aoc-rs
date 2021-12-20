@@ -89,7 +89,7 @@ impl crate::Day for Day {
     }
 
     fn part2(&self) -> String {
-        todo!()
+        (0..(50-2)/2).fold(self.step2(&self.image), |image, _| self.step2(&image)).len().to_string()
     }
 }
 
