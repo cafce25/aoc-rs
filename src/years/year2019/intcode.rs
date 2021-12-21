@@ -9,6 +9,7 @@ use std::{
 
 type Atom = i64;
 
+#[derive(Debug, Clone)]
 pub struct Intcode(Vec<Atom>);
 
 impl FromStr for Intcode {
@@ -20,6 +21,12 @@ impl FromStr for Intcode {
                 .map(|n| n.parse())
                 .collect::<Result<Vec<_>, _>>()?,
         ))
+    }
+}
+
+impl From<Vec<Atom>> for Intcode {
+    fn from(ic: Vec<Atom>) -> Self {
+        Self(ic)
     }
 }
 
@@ -82,7 +89,7 @@ impl OpCode {
 
 #[derive(Debug)]
 pub struct Machine {
-    pub memory: Vec<Atom>,
+    pub memory: Intcode,
     ip: usize,
     pub halt: bool,
     input: VecDeque<Atom>,
@@ -377,10 +384,31 @@ impl IndexMut<usize> for Machine {
     }
 }
 
+impl From<Intcode> for Machine {
+    fn from(memory: Intcode) -> Self {
+        Self {
+            memory,
+            ip: 0,
+            halt: false,
+            input: VecDeque::new(),
+            output: VecDeque::new(),
+            relative_base: 0,
+            empty: 0,
+        }
+    }
+}
+
+impl From<&Intcode> for Machine {
+    fn from(memory: &Intcode) -> Self {
+        Self::from(memory.to_owned())
+    }
+}
+
+
 impl From<Vec<Atom>> for Machine {
     fn from(memory: Vec<Atom>) -> Self {
         Self {
-            memory,
+            memory: memory.into(),
             ip: 0,
             halt: false,
             input: VecDeque::new(),
