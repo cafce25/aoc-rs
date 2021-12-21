@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use cached::proc_macro::cached;
 
 pub struct DayGen;
 
@@ -20,70 +20,48 @@ impl Day {
     }
 }
 
+#[cached]
 fn run(
-    memo: &mut HashMap<(u64, u64, u64, u64, bool, [u64; 3]), (u64, u64)>,
-    p1: u64,
-    p2: u64,
-    points1: u64,
-    points2: u64,
-    p1turn: bool,
-    rolled: &mut Vec<u64>,
+    active_pos: u64,
+    next_pos: u64,
+    active_points: u64,
+    next_points: u64,
+    rolled: [u8; 3],
 ) -> (u64, u64) {
-    let mut rolled_arr = [0; 3];
-    rolled_arr[0] = rolled.iter().filter(|x| **x == 1).count() as u64;
-    rolled_arr[1] = rolled.iter().filter(|x| **x == 2).count() as u64;
-    rolled_arr[2] = rolled.iter().filter(|x| **x == 3).count() as u64;
-    let key = (p1, p2, points1, points2, p1turn, rolled_arr);
-    if let Some(res) = memo.get(&key) {
-        return *res;
-    }
-    if points1 >= 21 {
-        memo.insert(key, (1, 0));
+    let mut rolled = rolled;
+    if active_points >= 21 {
         return (1, 0);
     }
-    if points2 >= 21 {
-        memo.insert(key, (0, 1));
+    if next_points >= 21 {
         return (0, 1);
     }
-    if rolled.len() < 3 {
-        rolled.push(1);
-        let a = run(memo, p1, p2, points1, points2, p1turn, rolled);
-        rolled.pop();
-        rolled.push(2);
-        let b = run(memo, p1, p2, points1, points2, p1turn, rolled);
-        rolled.pop();
-        rolled.push(3);
-        let c = run(memo, p1, p2, points1, points2, p1turn, rolled);
-        rolled.pop();
-        let res = (a.0 + b.0 + c.0, a.1 + b.1 + c.1);
-        memo.insert(key, res);
+    if rolled.iter().sum::<u8>() < 3 {
+        let mut res = (0, 0);
+        for i in 0..=2 {
+            rolled[i] += 1;
+            let a = run(
+                active_pos,
+                next_pos,
+                active_points,
+                next_points,
+                rolled,
+            );
+            rolled[i] -= 1;
+            res.0 += a.0;
+            res.1 += a.1;
+        }
         return res;
     }
-    let rolled = rolled.iter().sum::<u64>();
-    let res = if p1turn {
-        let p1 = (p1 + rolled) % 10;
-        run(
-            memo,
-            p1,
-            p2,
-            points1 + p1 + 1,
-            points2,
-            !p1turn,
-            &mut Vec::new(),
-        )
-    } else {
-        let p2 = (p2 + rolled) % 10;
-        run(
-            memo,
-            p1,
-            p2,
-            points1,
-            points2 + p2 + 1,
-            !p1turn,
-            &mut Vec::new(),
-        )
-    };
-    memo.insert(key, res);
+    let rolled = (0u64..3).map(|i| (i+1) * rolled[i as usize] as u64).sum::<u64>();
+    let active_pos = (active_pos + rolled) % 10;
+    let res = run(
+        next_pos,
+        active_pos,
+        next_points,
+        active_points + active_pos + 1,
+        [0;3]
+    );
+    let res = (res.1, res.0);
     res
 }
 impl crate::Day for Day {
@@ -138,8 +116,7 @@ impl crate::Day for Day {
     fn part2(&self) -> String {
         let p1 = self.input.0 - 1;
         let p2 = self.input.1 - 1;
-        let mut memo = HashMap::new();
-        let (p1wins, p2wins) = run(&mut memo, p1, p2, 0, 0, true, &mut Vec::new());
+        let (p1wins, p2wins) = run(p1, p2, 0, 0, [0;3]);
         p1wins.max(p2wins).to_string()
     }
 }
