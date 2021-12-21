@@ -52,11 +52,7 @@ impl crate::Day for Day {
                 }
             }
         }
-        let mut map = Astar::with(
-            &real_input,
-            (0, 0),
-            (width * 5 - 1, height * 5 - 1),
-        );
+        let mut map = Astar::with(&real_input, (0, 0), (width * 5 - 1, height * 5 - 1));
 
         map.astar().to_string()
     }
@@ -98,17 +94,11 @@ impl Astar {
             let neighbour = self.min_neighbour(candidate);
             let path = neighbour + self.get_tile(candidate).unwrap();
             self[candidate] = Some(path);
-            candidates.append(
-                &mut self
-                    .neighbours(candidate)
-                    .into_iter()
-                    .filter_map(|coord| {
-                        self[coord]
-                            .is_none()
-                            .then(|| (usize::MAX - self.estimate_cost(coord) - path, coord))
-                    })
-                    .collect(),
-            );
+            candidates.extend(self.neighbours(candidate).into_iter().filter_map(|coord| {
+                self[coord]
+                    .is_none()
+                    .then(|| (usize::MAX - self.estimate_cost(coord) - path, coord))
+            }));
         }
         self[self.finish].unwrap()
     }
@@ -199,7 +189,6 @@ impl IndexMut<Coord> for Astar {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -214,5 +203,4 @@ mod tests {
             day.part2();
         })
     }
-
 }
