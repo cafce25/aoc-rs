@@ -39,30 +39,25 @@ fn run(
         let mut res = (0, 0);
         for i in 0..=2 {
             rolled[i] += 1;
-            let a = run(
-                active_pos,
-                next_pos,
-                active_points,
-                next_points,
-                rolled,
-            );
+            let a = run(active_pos, next_pos, active_points, next_points, rolled);
             rolled[i] -= 1;
             res.0 += a.0;
             res.1 += a.1;
         }
         return res;
     }
-    let rolled = (0u64..3).map(|i| (i+1) * rolled[i as usize] as u64).sum::<u64>();
+    let rolled = (0u64..3)
+        .map(|i| (i + 1) * rolled[i as usize] as u64)
+        .sum::<u64>();
     let active_pos = (active_pos + rolled) % 10;
     let res = run(
         next_pos,
         active_pos,
         next_points,
         active_points + active_pos + 1,
-        [0;3]
+        [0; 3],
     );
-    let res = (res.1, res.0);
-    res
+    (res.1, res.0)
 }
 impl crate::Day for Day {
     fn part1(&self) -> String {
@@ -116,7 +111,7 @@ impl crate::Day for Day {
     fn part2(&self) -> String {
         let p1 = self.input.0 - 1;
         let p2 = self.input.1 - 1;
-        let (p1wins, p2wins) = run(p1, p2, 0, 0, [0;3]);
+        let (p1wins, p2wins) = run(p1, p2, 0, 0, [0; 3]);
         p1wins.max(p2wins).to_string()
     }
 }

@@ -404,7 +404,6 @@ impl From<&Intcode> for Machine {
     }
 }
 
-
 impl From<Vec<Atom>> for Machine {
     fn from(memory: Vec<Atom>) -> Self {
         Self {

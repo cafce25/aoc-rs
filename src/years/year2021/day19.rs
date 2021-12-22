@@ -127,11 +127,13 @@ impl Day {
         }
     }
 }
+type Offset = [i64;3];
+type Rotation = [(i64, usize);3];
 fn matches_to_hints(
     x_matches: &[(usize, i64)],
     y_matches: &[(usize, i64)],
     z_matches: &[(usize, i64)],
-) -> Vec<([i64; 3], [(i64, usize); 3])> {
+) -> Vec<(Offset, Rotation)> {
     let mut hints = Vec::new();
     for (x_idx, dx) in x_matches {
         for (y_idx, dy) in y_matches {

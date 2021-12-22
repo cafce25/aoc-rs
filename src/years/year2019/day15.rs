@@ -101,19 +101,16 @@ impl Plan {
         self.min = (self.min.0.min(coord.0), self.min.1.min(coord.1));
         self.max = (self.max.0.max(coord.0), self.max.1.max(coord.1));
     }
-    fn unknown_neighbours<'a>(&'a self, coord: Coord) -> impl Iterator<Item = Coord> + 'a {
+    fn unknown_neighbours(&self, coord: Coord) -> impl Iterator<Item = Coord> + '_ {
         all_neighbours(coord).filter(move |coord| !self.contains_key(coord))
     }
 
-    fn neighbours<'a>(&'a self, coord: Coord) -> impl Iterator<Item = Coord> + 'a {
+    fn neighbours(&self, coord: Coord) -> impl Iterator<Item = Coord> + '_ {
         all_neighbours(coord).filter(move |coord| self.contains_key(coord))
     }
-    fn walkable_neighbours<'a>(&'a self, coord: Coord) -> impl Iterator<Item = Coord> + 'a {
+    fn walkable_neighbours(&self, coord: Coord) -> impl Iterator<Item = Coord> + '_ {
         self.neighbours(coord)
-            .filter(move |coord| match self.get(coord) {
-                Some(Tile::Empty) | Some(Tile::Oxygen) => true,
-                _ => false,
-            })
+            .filter(move |coord| matches!(self.get(coord), Some(Tile::Empty) | Some(Tile::Oxygen)))
     }
 
     pub fn get(&self, k: &Coord) -> Option<&Tile> {
@@ -297,7 +294,8 @@ impl Simulation {
                 for prev_empty in self
                     .plan
                     .neighbours(*oxy)
-                    .filter(|n| self.plan.get(n) == Some(&Tile::Empty)).collect::<Vec<_>>()
+                    .filter(|n| self.plan.get(n) == Some(&Tile::Empty))
+                    .collect::<Vec<_>>()
                 {
                     next_oxys.push(prev_empty);
                     self.plan.insert(prev_empty, Tile::Oxygen);
@@ -381,7 +379,7 @@ impl Direction {
             Direction::West => (coord.0, coord.1 - 1),
         }
     }
-    fn to_command(&self) -> i64 {
+    fn to_command(self) -> i64 {
         match self {
             Direction::North => 1,
             Direction::East => 4,

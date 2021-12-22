@@ -87,14 +87,12 @@ impl SnailNumber {
                     let mut sub_distri = Some((0, distribute.unwrap().1));
                     right.explode_rec(i + 1, &mut sub_distri);
                     *distribute = Some((distribute.unwrap().0, sub_distri.unwrap().1));
-                    return;
                 } else {
                     right.explode_rec(i + 1, distribute);
                     if distribute.is_some() {
                         let mut sub_distri = Some((distribute.unwrap().0, 0));
                         left.explode_rec(i + 1, &mut sub_distri);
                         *distribute = Some((sub_distri.unwrap().0, distribute.unwrap().1));
-                        return;
                     }
                 }
             }
@@ -214,7 +212,7 @@ impl std::ops::Add for SnailNumber {
 
 impl std::iter::Sum for SnailNumber {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.reduce(|acc, o| acc + o).unwrap_or(0u8.into())
+        iter.reduce(|acc, o| acc + o).unwrap_or_else(||0u8.into())
     }
 }
 
