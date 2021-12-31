@@ -54,8 +54,8 @@ fn generate_year(year: i32, now: impl Datelike, client: &Client, indent: String)
 
     (now.year() > year || now.year() == year && now.month() == 12)
         .then(|| {
-            let max_day = if now.year() > year || now.day() > 24 {
-                24
+            let max_day = if now.year() > year || now.day() > 25 {
+                25
             } else {
                 now.day()
             };
