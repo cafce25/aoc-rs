@@ -46,7 +46,6 @@ impl crate::Day for Day {
                 })
             })
             .collect();
-        print_board(&board, width);
         let mut checksum = 0;
         for x in 1..width - 1 {
             for y in 1..board.len() / width - 1 {
@@ -70,24 +69,26 @@ impl crate::Day for Day {
     }
 
     fn part2(&self) -> String {
-        todo!()
+        let main = "A,B,A,C,B,C,A,C,B,C";
+        let a = "L,8,R,10,L,10";
+        let b = "R,10,L,8,L,8,L,10";
+        let c = "L,4,L,6,L,8,L,8";
+
+        let mut m = Machine::from(&self.input);
+        m.memory[0] = 2;
+        m.input_iter(
+            format!("{}\n{}\n{}\n{}\n{}\n", main, a, b, c, "n")
+                .as_bytes()
+                .iter()
+                .copied()
+                .map(i64::from),
+        );
+        m.last().unwrap().to_string()
     }
 }
 
 fn index(width: usize, x: usize, y: usize) -> usize {
     x + y * width
-}
-
-fn print_board(board: &[Tile], width: usize) {
-    println!();
-    let mut y = 0;
-    for (i, tile) in board.iter().enumerate() {
-        if y < i / width {
-            println!();
-            y = i / width;
-        }
-        print!("{:?}", tile);
-    }
 }
 
 #[derive(PartialEq)]
